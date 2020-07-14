@@ -1,3 +1,19 @@
+# *******************************************************************************
+#  * Copyright 2009-2020 Exactpro (Exactpro Systems Limited)
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  * http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+#  ******************************************************************************
+
 import atexit
 import importlib
 import logging.config
@@ -8,6 +24,7 @@ import sys
 import pika
 
 from th2recon import comparator, store, services
+from th2recon.rules_configurations_loader import load_rules
 from th2recon.th2 import infra_pb2
 
 logging.config.fileConfig(fname=str(sys.argv[1]), disable_existing_loggers=False)
@@ -27,6 +44,7 @@ TIME_INTERVAL = int(os.getenv('TIME_INTERVAL'))
 EVENT_STORAGE_URI = os.getenv('EVENT_STORAGE')
 COMPARATOR_URI = os.getenv('COMPARATOR_URI')
 RECON_NAME = str(os.getenv('RECON_NAME'))
+RULES_CONFIGURATIONS_PATH = str(os.getenv('RULES_CONFIGURATIONS_FILE'))
 RULES_PACKAGE_PATH = 'rules'
 
 credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
@@ -77,9 +95,11 @@ def import_submodules(package, recursive=True):
 
 event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME)
 comparator = comparator.Comparator(COMPARATOR_URI)
-rule_modules = import_submodules(RULES_PACKAGE_PATH)
-rules = [rule_module.Rule(event_store, ROUTING_KEYS, CACHE_SIZE, TIME_INTERVAL, comparator) for rule_module in
-         rule_modules.values()]
+loaded_rules = load_rules(RULES_CONFIGURATIONS_PATH, RULES_PACKAGE_PATH)
+rules = []
+for rule in loaded_rules:
+    rules.append(rule.module.Rule(event_store, ROUTING_KEYS, CACHE_SIZE, TIME_INTERVAL, comparator, rule.enabled,
+                                  rule.configuration))
 
 recon = services.Recon(rules, queue_listeners)
 

@@ -2,7 +2,7 @@ FROM python:3.8-slim
 
 WORKDIR /usr/src/app
 
-RUN pip install --no-cache-dir -i https://username:password@nexus.exactpro.com/repository/th2-pypi/
+RUN pip install --no-cache-dir th2-recon -i https://username:password@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
 
 COPY . .
 
@@ -17,6 +17,7 @@ ENV RABBITMQ_HOST=some-host-name-or-ip \
     COMPARATOR_URI=utility-host-name-or-ip:9999 \
     CACHE_SIZE=10 \
     RECON_TIMEOUT=5 \
-    TIME_INTERVAL=10;
+    TIME_INTERVAL=10 \
+    RULES_CONFIGURATIONS_FILE=../rules_configurations.yaml;
 
 CMD [ "python", "./src/main.py", "log_config.conf"]
