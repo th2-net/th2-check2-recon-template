@@ -17,3 +17,5 @@ RECON_TIMEOUT=5 - Timeout in seconds to check incoming messages from queue (need
 TIME_INTERVAL=10 - Window size in seconds for observing messages in cache (rewrite)
 RECON_NAME=DEMO - Name Recon report after symbol '_'. 'Recon_<RECON_NAME>'.
 RULES_CONFIGURATIONS_FILE - path to the rule configuration file
+EVENT_BATCH_MAX_SIZE=32 - Max number of events per batch
+EVENT_BATCH_SEND_INTERVAL=1 - Interval in seconds between of sending batches with events

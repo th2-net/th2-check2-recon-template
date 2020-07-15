@@ -46,6 +46,8 @@ COMPARATOR_URI = os.getenv('COMPARATOR_URI')
 RECON_NAME = str(os.getenv('RECON_NAME'))
 RULES_CONFIGURATIONS_PATH = str(os.getenv('RULES_CONFIGURATIONS_FILE'))
 RULES_PACKAGE_PATH = 'rules'
+EVENT_BATCH_MAX_SIZE = int(os.getenv('EVENT_BATCH_MAX_SIZE'))
+EVENT_BATCH_SEND_INTERVAL = int(os.getenv('EVENT_BATCH_SEND_INTERVAL'))
 
 credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 params = pika.ConnectionParameters(virtual_host=RABBITMQ_VHOST, host=RABBITMQ_HOST, port=RABBITMQ_PORT,
@@ -93,7 +95,7 @@ def import_submodules(package, recursive=True):
     return results
 
 
-event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME)
+event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME, EVENT_BATCH_MAX_SIZE, EVENT_BATCH_SEND_INTERVAL)
 comparator = comparator.Comparator(COMPARATOR_URI)
 loaded_rules = load_rules(RULES_CONFIGURATIONS_PATH, RULES_PACKAGE_PATH)
 rules = []
