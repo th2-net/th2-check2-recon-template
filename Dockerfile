@@ -2,7 +2,10 @@ FROM python:3.8-slim
 
 WORKDIR /usr/src/app
 
-RUN pip install --no-cache-dir th2-recon -i https://username:password@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
+ARG USERNAME
+ARG PASSWORD
+
+RUN pip install --no-cache-dir th2-recon -i https://$USERNAME:$PASSWORD@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
 
 COPY . .
 
