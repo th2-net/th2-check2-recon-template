@@ -15,14 +15,11 @@
 #  ******************************************************************************
 
 import atexit
-import importlib
 import logging.config
 import os
-import pkgutil
-
 import sys
-import pika
 
+import pika
 from th2recon import comparator, store, services
 from th2recon.rules_configurations_loader import load_rules
 from th2recon.th2 import infra_pb2
@@ -67,31 +64,21 @@ for queue_listener in queue_listeners.values():
 
 
 def callback(ch, method, properties, body):
-    message_batch = infra_pb2.MessageBatch()
-    message_batch.ParseFromString(body)
-    for message in message_batch.messages:
-        queue_listeners[method.routing_key].buffer.put(item=message, block=True)
-        logger.debug("Received message from %r:%r %r" % (
-            method.routing_key, message.metadata.message_type, message.metadata.timestamp.seconds))
+    try:
+        message_batch = infra_pb2.MessageBatch()
+        message_batch.ParseFromString(body)
+        for message in message_batch.messages:
+            queue_listeners[method.routing_key].buffer.put(item=message, block=True)
+            logger.debug("Received message from %r:%r %r" % (
+                method.routing_key, message.metadata.message_type, message.metadata.timestamp.seconds))
+    except Exception as e:
+        logger.exception(f"An error occurred while processing the received message. Body: {body}", e)
 
 
 for queue_listener in queue_listeners.values():
     channel.basic_consume(queue_listener.queue_name,
                           callback,
                           auto_ack=True)
-
-
-def import_submodules(package, recursive=True):
-    if isinstance(package, str):
-        package = importlib.import_module(package)
-    results = {}
-    for loader, name, is_pkg in pkgutil.walk_packages(package.__path__):
-        full_name = package.__name__ + '.' + name
-        results[full_name] = importlib.import_module(full_name)
-        if recursive and is_pkg:
-            results.update(import_submodules(full_name))
-    return results
-
 
 event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME)
 comparator = comparator.Comparator(COMPARATOR_URI)
