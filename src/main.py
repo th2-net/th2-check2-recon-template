@@ -34,6 +34,7 @@ RABBITMQ_VHOST = os.getenv('RABBITMQ_VHOST')
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
 RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY = os.getenv('RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY')
 CACHE_SIZE = int(os.getenv('CACHE_SIZE'))
+BUFFER_SIZE = int(os.getenv('BUFFER_SIZE'))
 RECON_TIMEOUT = int(os.getenv('RECON_TIMEOUT'))
 ROUTING_KEYS = [key.replace('{', '').replace('}', '').replace('"', '').replace(' ', '') for key in
                 os.getenv('ROUTING_KEYS').split(',')]
@@ -54,23 +55,28 @@ channel = connection.channel()
 channel.exchange_declare(exchange=RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY, exchange_type='direct')
 
 queue_listeners = {
-    routing_key: services.QueueListener(routing_key, CACHE_SIZE, channel, RECON_TIMEOUT,
+    routing_key: services.QueueListener(routing_key, BUFFER_SIZE, channel, RECON_TIMEOUT,
                                         ROUTING_KEYS.index(routing_key)) for routing_key in ROUTING_KEYS}
 
 for queue_listener in queue_listeners.values():
     channel.queue_bind(exchange=RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY,
                        queue=queue_listener.queue_name,
                        routing_key=queue_listener.routing_key)
+batch_count = dict()
+for routing_key in ROUTING_KEYS:
+    batch_count[routing_key] = 0
 
 
 def callback(ch, method, properties, body):
     try:
+        batch_count[method.routing_key] += 1
         message_batch = infra_pb2.MessageBatch()
         message_batch.ParseFromString(body)
         for message in message_batch.messages:
             queue_listeners[method.routing_key].buffer.put(item=message, block=True)
-            logger.debug("Received message from %r:%r %r" % (
-                method.routing_key, message.metadata.message_type, message.metadata.timestamp.seconds))
+            logger.debug("Received message from %r:%r timestamp %rsec batch: %r" % (
+                method.routing_key, message.metadata.message_type, message.metadata.timestamp.seconds,
+                batch_count[method.routing_key]))
     except Exception as e:
         logger.exception(f"An error occurred while processing the received message. Body: {body}", e)
 
