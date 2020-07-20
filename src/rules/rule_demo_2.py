@@ -21,7 +21,7 @@ logger = logging.getLogger()
 
 
 def hashed_fields() -> list:
-    return ['TrdMatchID']
+    return ['ClOrdID']
 
 
 class Rule(rule.Rule):
