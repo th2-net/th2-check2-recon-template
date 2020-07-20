@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import datetime
+import logging
 
-import rule
-import store
-from th2 import infra_pb2, message_comparator_pb2
-from google.protobuf.timestamp_pb2 import Timestamp
+from th2recon import rule, store
+from th2recon.th2 import infra_pb2
 
 logger = logging.getLogger()
 
