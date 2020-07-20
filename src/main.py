@@ -76,9 +76,9 @@ def callback(ch, method, properties, body):
         message_batch.ParseFromString(body)
         for message in message_batch.messages:
             queue_listeners[method.routing_key].buffer.put(item=message, block=True)
-            logger.debug("Received message from %r:%r timestamp %rsec batch: %r" % (
+            logger.debug("Received message from %r:%r timestamp %rsec batch: %r buffer: %r/%rmsg" % (
                 method.routing_key, message.metadata.message_type, message.metadata.timestamp.seconds,
-                batch_count[method.routing_key]))
+                batch_count[method.routing_key], queue_listeners[method.routing_key].buffer.qsize(), BUFFER_SIZE))
     except Exception as e:
         logger.exception(f"An error occurred while processing the received message. Body: {body}", e)
 
@@ -88,7 +88,7 @@ for queue_listener in queue_listeners.values():
                           callback,
                           auto_ack=True)
 
-event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME)
+event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME, EVENT_BATCH_MAX_SIZE, EVENT_BATCH_SEND_INTERVAL)
 comparator = comparator.Comparator(COMPARATOR_URI)
 loaded_rules = load_rules(RULES_CONFIGURATIONS_PATH, RULES_PACKAGE_PATH)
 rules = []
