@@ -44,6 +44,8 @@ COMPARATOR_URI = os.getenv('COMPARATOR_URI')
 RECON_NAME = str(os.getenv('RECON_NAME'))
 RULES_CONFIGURATIONS_PATH = str(os.getenv('RULES_CONFIGURATIONS_FILE'))
 RULES_PACKAGE_PATH = 'rules'
+EVENT_BATCH_MAX_SIZE = int(os.getenv('EVENT_BATCH_MAX_SIZE'))
+EVENT_BATCH_SEND_INTERVAL = int(os.getenv('EVENT_BATCH_SEND_INTERVAL'))
 
 credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
 params = pika.ConnectionParameters(virtual_host=RABBITMQ_VHOST, host=RABBITMQ_HOST, port=RABBITMQ_PORT,

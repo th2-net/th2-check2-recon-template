@@ -21,6 +21,8 @@ ENV RABBITMQ_HOST=some-host-name-or-ip \
     CACHE_SIZE=10 \
     RECON_TIMEOUT=5 \
     TIME_INTERVAL=10 \
-    RULES_CONFIGURATIONS_FILE=../rules_configurations.yaml;
+    RULES_CONFIGURATIONS_FILE=../rules_configurations.yaml \
+    EVENT_BATCH_MAX_SIZE=32 \
+    EVENT_BATCH_SEND_INTERVAL=1;
 
 CMD [ "python", "./src/main.py", "log_config.conf"]
