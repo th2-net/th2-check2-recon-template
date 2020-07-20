@@ -19,3 +19,6 @@ rules:
   - name: "rule_demo_2"
     enabled: true
     configuration: ~
+  - name: "DVRule"
+    enabled: true
+    configuration: ~
