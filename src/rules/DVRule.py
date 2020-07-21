@@ -15,6 +15,7 @@
 import datetime
 import logging
 
+from google.protobuf.timestamp_pb2 import Timestamp
 from th2recon import rule, store
 from th2recon.th2 import infra_pb2
 
@@ -22,10 +23,13 @@ logger = logging.getLogger()
 
 
 def hashed_fields() -> list:
-    return ['ClOrdID']
+    return ['TrdMatchID']
 
 
 class Rule(rule.Rule):
+
+    def configure(self, configuration):
+        pass
 
     def get_name(self) -> str:
         return "DVRule"
@@ -34,7 +38,7 @@ class Rule(rule.Rule):
         return "DVRule"
 
     def hash(self, message: infra_pb2.Message) -> str:
-        if message.metadata.message_type == 'Heartbeat':
+        if message.metadata.message_type != 'ExecutionReport':
             return rule.IGNORED_HASH
         str_fields = ""
         for field_name in hashed_fields():

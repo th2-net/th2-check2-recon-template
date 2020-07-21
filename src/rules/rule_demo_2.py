@@ -36,7 +36,7 @@ class Rule(rule.Rule):
         return "Rule_2 is used for demo"
 
     def hash(self, message: infra_pb2.Message) -> str:
-        if message.metadata.message_type == 'Heartbeat':
+        if message.metadata.message_type != 'ExecutionReport':
             return rule.IGNORED_HASH
         str_fields = ""
         for field_name in hashed_fields():
