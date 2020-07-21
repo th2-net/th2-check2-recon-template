@@ -19,6 +19,7 @@ ENV RABBITMQ_HOST=some-host-name-or-ip \
     EVENT_STORAGE=event-store-host-name-or-ip:9999 \
     COMPARATOR_URI=utility-host-name-or-ip:9999 \
     CACHE_SIZE=10 \
+    BUFFER_SIZE=1000 \
     RECON_TIMEOUT=5 \
     TIME_INTERVAL=10 \
     RULES_CONFIGURATIONS_FILE=../rules_configurations.yaml \

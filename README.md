@@ -13,6 +13,7 @@ ROUTING_KEYS='{"mq_key1", "mq_key2"}' - format will be changed to JSON '["mq_key
 EVENT_STORAGE=event-store-host-name-or-ip:9999 - it will be split to TH2_EVENT_STORAGE_GRPC_HOST, TH2_EVENT_STORAGE_GRPC_PORT
 COMPARATOR_URI=utility-host-name-or-ip:9999 - it will be split to TH2_UTILITY_GRPC_HOST, TH2_UTILITY_GRPC_PORT
 CACHE_SIZE=10 - Max number of messages in cache for every queue
+BUFFER_SIZE=1000 - Max number of messages in buffer for every queue
 RECON_TIMEOUT=5 - Timeout in seconds to check incoming messages from queue (need more detail)
 TIME_INTERVAL=10 - Window size in seconds for observing messages in cache (rewrite)
 RECON_NAME=DEMO - Name Recon report after symbol '_'. 'Recon_<RECON_NAME>'.
