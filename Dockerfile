@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 ARG USERNAME
 ARG PASSWORD
 
-RUN pip install --no-cache-dir th2-recon -i https://$USERNAME:$PASSWORD@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
+RUN pip install --no-cache th2-recon -i https://$USERNAME:$PASSWORD@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
 
 COPY . .
 
