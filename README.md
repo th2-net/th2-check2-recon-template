@@ -1,8 +1,20 @@
+## Introduction
 This component provide feature to compare two or more queues of parsed message via user rules. Every rule should implement two methods: hash(message) and check(messages).
 Rule.hash - assepts parsed message and should returns string genrated with message fields values.
 Rule.check - assepts parsed message collection which contains message from every listened queue with equal hash. This method should compare messages and return TH2 Event with comparison details and results.
 
-Example of Recon component env variables:
+## Installing
+Use the following command to configure the required packages:
+```
+pip install th2-recon -i https://username:password@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
+```
+If you already have the kernel installed, use the following command to update:
+```
+pip install th2-recon -i https://username:password@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/ -U
+```
+
+## Example of Recon component env variables:
+```
 RABBITMQ_HOST=some-host-name-or-ip
 RABBITMQ_PORT=7777
 RABBITMQ_VHOST=someVhost
@@ -20,3 +32,4 @@ RECON_NAME=DEMO - Name Recon report after symbol '_'. 'Recon_<RECON_NAME>'.
 RULES_CONFIGURATIONS_FILE - path to the rule configuration file
 EVENT_BATCH_MAX_SIZE=32 - Max number of events per batch
 EVENT_BATCH_SEND_INTERVAL=1 - Interval in seconds between of sending batches with events
+```
