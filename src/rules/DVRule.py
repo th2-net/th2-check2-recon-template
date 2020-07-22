@@ -22,11 +22,10 @@ from th2recon.th2 import infra_pb2
 logger = logging.getLogger()
 
 
-def hashed_fields() -> list:
-    return ['TrdMatchID']
-
-
 class Rule(rule.Rule):
+
+    def hashed_fields(self) -> list:
+        return ['TrdMatchID']
 
     def configure(self, configuration):
         pass
@@ -41,7 +40,7 @@ class Rule(rule.Rule):
         if message.metadata.message_type != 'ExecutionReport':
             return rule.IGNORED_HASH
         str_fields = ""
-        for field_name in hashed_fields():
+        for field_name in self.hashed_fields():
             if message.fields[field_name].simple_value == '':
                 return rule.IGNORED_HASH
             str_fields += message.fields[field_name].simple_value

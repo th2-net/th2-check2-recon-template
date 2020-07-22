@@ -20,11 +20,10 @@ from th2recon.th2 import infra_pb2, message_comparator_pb2
 logger = logging.getLogger()
 
 
-def hashed_fields() -> list:
-    return ['ClOrdID']
-
-
 class Rule(rule.Rule):
+
+    def hashed_fields(self) -> list:
+        return ['ClOrdID']
 
     def configure(self, configuration):
         pass
@@ -39,7 +38,7 @@ class Rule(rule.Rule):
         if message.metadata.message_type != 'ExecutionReport':
             return rule.IGNORED_HASH
         str_fields = ""
-        for field_name in hashed_fields():
+        for field_name in self.hashed_fields():
             if message.fields[field_name].simple_value == '':
                 return rule.IGNORED_HASH
             str_fields += message.fields[field_name].simple_value
@@ -52,7 +51,7 @@ class Rule(rule.Rule):
             comparison_result = self.comparator.compare(messages[0], messages[1], settings).result()
             logger.debug(f"Rule: {self.get_name()}. Message type: {messages[0].metadata.message_type}. Check success")
             hash_field_values = dict()
-            for field_name in hashed_fields():
+            for field_name in self.hashed_fields():
                 if not hash_field_values.__contains__(field_name):
                     hash_field_values[field_name] = []
                 hash_field_values[field_name].append(messages[0].fields[field_name].simple_value)
