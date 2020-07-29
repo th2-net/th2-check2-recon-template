@@ -6,7 +6,7 @@ services:
 variables:
   DOCKER_HOST: tcp://kos-gitlab-runner02:2375
   DOCKER_TLS_CERTDIR: ""
-  IMAGE_NAME: $CI_REGISTRY/th2-recon-template
+  IMAGE_NAME: $CI_REGISTRY/th2-recon-mit-qa
   VERSION: "1.0"
 
 before_script:
