@@ -9,7 +9,8 @@ RUN pip install th2-recon=1.1.51 -i https://$USERNAME:$PASSWORD@nexus.exactpro.c
 
 COPY . .
 
-ENV RABBITMQ_HOST=some-host-name-or-ip \
+ENV TH2_CORE_VERSION='1.1.55' \
+    RABBITMQ_HOST=some-host-name-or-ip \
     RABBITMQ_PORT=7777 \
     RABBITMQ_VHOST=someVhost \
     RABBITMQ_USER=some_user \
@@ -25,5 +26,7 @@ ENV RABBITMQ_HOST=some-host-name-or-ip \
     RULES_CONFIGURATIONS_FILE=../rules_configurations.yaml \
     EVENT_BATCH_MAX_SIZE=32 \
     EVENT_BATCH_SEND_INTERVAL=1;
+
+RUN pip install th2-recon==$TH2_CORE_VERSION -i https://$USERNAME:$PASSWORD@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
 
 CMD [ "python", "./src/main.py", "log_config.conf"]
