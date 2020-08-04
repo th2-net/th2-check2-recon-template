@@ -5,8 +5,6 @@ WORKDIR /usr/src/app
 ARG USERNAME
 ARG PASSWORD
 
-RUN pip install th2-recon=1.1.51 -i https://$USERNAME:$PASSWORD@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
-
 COPY . .
 
 ENV TH2_CORE_VERSION='1.1.55' \
