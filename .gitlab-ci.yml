@@ -6,14 +6,15 @@ services:
 variables:
   DOCKER_HOST: tcp://kos-gitlab-runner02:2375
   DOCKER_TLS_CERTDIR: ""
-  IMAGE_NAME: $CI_REGISTRY/th2-recon-template
   VERSION: "1.0"
 
 before_script:
   - docker info
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
-build:
+build_master:
+  variables:
+    IMAGE_NAME: $CI_REGISTRY/th2-recon-template
   tags:
   - docker-in-docker
   stage: build
@@ -22,3 +23,21 @@ build:
     - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$CI_PIPELINE_IID --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
     - docker push $IMAGE_NAME:$VERSION.$CI_PIPELINE_IID
     - docker push $IMAGE_NAME:latest
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "master"
+
+build_branch:
+  variables:
+    IMAGE_NAME: $CI_REGISTRY/th2-recon-template/$CI_COMMIT_REF_SLUG
+  tags:
+  - docker-in-docker
+  stage: build
+  script:
+    - docker pull $IMAGE_NAME:latest || true
+    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$CI_PIPELINE_IID --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
+    - docker push $IMAGE_NAME:$VERSION.$CI_PIPELINE_IID
+    - docker push $IMAGE_NAME:latest
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME != "master"
