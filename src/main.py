@@ -100,8 +100,10 @@ recon = services.Recon(rules, queue_listeners)
 
 
 def shutdown_hook():
-    channel.stop_consuming()
-    recon.stop()
+    try:
+        channel.stop_consuming()
+    finally:
+        recon.stop()
 
 
 atexit.register(shutdown_hook)
