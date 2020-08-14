@@ -76,16 +76,16 @@ def callback(ch, method, properties, body):
         message_batch.ParseFromString(body)
         for message in message_batch.messages:
             queue_listeners[method.routing_key].buffer.put(item=message, block=True)
-            logger.debug("Received message from %r:%r timestamp %rsec batch: %r buffer: %r/%rmsg" % (
-                method.routing_key, message.metadata.message_type, message.metadata.timestamp.seconds,
+            logger.debug("RABBITMQ: Received message from %r:%r timestamp %rnanos batch: %r buffer: %r/%rmsg" % (
+                method.routing_key, message.metadata.message_type, services.get_timestamp(message),
                 batch_count[method.routing_key], queue_listeners[method.routing_key].buffer.qsize(), BUFFER_SIZE))
     except Exception as e:
         logger.exception(f"An error occurred while processing the received message. Body: {body}", e)
 
 
 for queue_listener in queue_listeners.values():
-    channel.basic_consume(queue_listener.queue_name,
-                          callback,
+    channel.basic_consume(queue=queue_listener.queue_name,
+                          on_message_callback=callback,
                           auto_ack=True)
 
 event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME, EVENT_BATCH_MAX_SIZE, EVENT_BATCH_SEND_INTERVAL)
