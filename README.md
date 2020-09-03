@@ -1,16 +1,21 @@
 ## Introduction
-This component provide feature to compare two or more queues of parsed message via user rules. Every rule should implement two methods: hash(message) and check(messages).
-Rule.hash - assepts parsed message and should returns string genrated with message fields values.
-Rule.check - assepts parsed message collection which contains message from every listened queue with equal hash. This method should compare messages and return TH2 Event with comparison details and results.
+This component allows you to compare two message streams and publish the comparison result to the report. 
+Comparison is made using rules, the interface of which is implemented by the user for various tasks.
+The two main methods for comparing messages are `hash(message)` and `check(message_a, message_b)`.
+Method `hash()` computes a hash string from the received message and returns it. 
+Method `check()` makes a more detailed comparison of received messages and returns `Event` of comparison.
 
 ## Installing
-Use the following command to configure the required packages:
+Create a `pip.conf` file in the root of the virtual environment directory with the following content:
 ```
-pip install th2-recon -i https://username:password@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
+[global]
+index = https://nexus.exactpro.com/repository/th2-pypi/pypi
+index-url = https://nexus.exactpro.com/repository/th2-pypi/simple
+extra-index-url= https://pypi.org/simple
 ```
-If you already have the kernel installed, use the following command to update:
+Use the following command to install the required dependencies:
 ```
-pip install th2-recon -i https://username:password@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/ -U
+pip install -r requirements.txt
 ```
 
 ## Example of Recon component env variables:
