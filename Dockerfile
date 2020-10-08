@@ -7,7 +7,7 @@ ARG PASSWORD
 
 COPY . .
 
-ENV TH2_CORE_VERSION='1.1.56' \
+ENV TH2_CORE_VERSION='1.1.68' \
     RABBITMQ_HOST=some-host-name-or-ip \
     RABBITMQ_PORT=7777 \
     RABBITMQ_VHOST=someVhost \
