@@ -13,50 +13,68 @@
 # limitations under the License.
 
 import logging
+import string
 
-from th2recon import rule, store
+from th2recon import rule
+from th2recon.common import EventUtils
+from th2recon.reconcommon import ReconMessage, MessageGroupType
 from th2recon.th2 import infra_pb2, message_comparator_pb2
+from th2recon.th2.infra_pb2 import Direction
 
 logger = logging.getLogger()
 
 
 class Rule(rule.Rule):
 
-    def hashed_fields(self) -> list:
-        return ['ClOrdID']
+    def description_of_groups(self) -> dict:
+        return {'ER_FIRST': MessageGroupType.multi,
+                'NOS_SECOND': MessageGroupType.single}
+
+    def group(self, message: ReconMessage):
+        message_type: str = message.proto_message.metadata.message_type
+        session_alias = message.proto_message.metadata.id.connection_id.session_alias
+        direction = message.proto_message.metadata.id.direction
+        if session_alias not in ['arfq01fix01', 'arfq02fix01'] or \
+                message_type not in ['ExecutionReport', 'NewOrderSingle']:
+            return
+
+        if (message_type == 'ExecutionReport' and direction != Direction.FIRST) or \
+                (message_type == 'NewOrderSingle' and direction != Direction.SECOND):
+            return
+
+        message.group_id = message_type.translate({ord(c): '' for c in string.ascii_lowercase})
+        message.group_id += '_' + Direction.Name(direction)
+
+        message.group_info['session_alias'] = session_alias
+        message.group_info['direction'] = direction
 
     def configure(self, configuration):
         pass
 
     def get_name(self) -> str:
-        return "Rule_2_demo"
+        return "Rule_2"
 
     def get_description(self) -> str:
         return "Rule_2 is used for demo"
 
-    def hash(self, message: infra_pb2.Message) -> str:
-        if message.metadata.message_type != 'ExecutionReport':
-            return rule.IGNORED_HASH
-        str_fields = ""
-        for field_name in self.hashed_fields():
-            if message.fields[field_name].simple_value == '':
-                return rule.IGNORED_HASH
-            str_fields += message.fields[field_name].simple_value
-        return str(hash(message.metadata.message_type + str_fields))
+    def hash(self, message: ReconMessage):
+        cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
+        message.hash = hash(message.proto_message.fields['ClOrdID'].simple_value)
+        message.hash_info['ClOrdID'] = cl_ord_id
 
-    def check(self, messages_by_routing_key: dict) -> infra_pb2.Event:
+    def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
+        logger.info(f"RULE '{self.get_name()}': CHECK: ")
         settings = message_comparator_pb2.ComparisonSettings()
-        messages = [msg for msg in messages_by_routing_key.values()]
         try:
-            comparison_result = self.comparator.compare(messages[0], messages[1], settings).result()
-            logger.debug(f"Rule: {self.get_name()}. Message type: {messages[0].metadata.message_type}. Check success")
+            messages = [msg.proto_message for msg in messages]
+            comparison_result = self.message_comparator.compare(messages[0], messages[1], settings).result()
             hash_field_values = dict()
-            for field_name in self.hashed_fields():
+            for field_name in ['ClOrdID']:
                 if not hash_field_values.__contains__(field_name):
                     hash_field_values[field_name] = []
                 hash_field_values[field_name].append(messages[0].fields[field_name].simple_value)
                 hash_field_values[field_name].append(messages[1].fields[field_name].simple_value)
-            return store.create_verification_event(self.rule_event_id, comparison_result, hash_field_values)
+            return EventUtils.create_verification_event(self.rule_event.id, comparison_result, hash_field_values)
         except Exception:
             logger.exception(
                 f"Rule: {self.get_name()}. Error while send comparison request:\n"

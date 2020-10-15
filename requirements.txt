@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-th2-recon==1.1.68
+th2-recon==2.0.0

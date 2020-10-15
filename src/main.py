@@ -12,105 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import atexit
 import logging.config
-import os
+import signal
 import sys
 
-import pika
-from th2recon import comparator, store, services
-from th2recon.rules_configurations_loader import load_rules
-from th2recon.th2 import infra_pb2
+import yaml
+from th2recon.recon import Recon
 
-logging.config.fileConfig(fname=str(sys.argv[1]), disable_existing_loggers=False)
+recon_config_path = str(sys.argv[1])
+log_file_path = str(sys.argv[2])
+
+logging.config.fileConfig(fname=log_file_path, disable_existing_loggers=False)
 logger = logging.getLogger()
 
-RABBITMQ_USER = os.getenv('RABBITMQ_USER')
-RABBITMQ_PASS = os.getenv('RABBITMQ_PASS')
-RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT'))
-RABBITMQ_VHOST = os.getenv('RABBITMQ_VHOST')
-RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
-RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY = os.getenv('RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY')
-CACHE_SIZE = int(os.getenv('CACHE_SIZE'))
-BUFFER_SIZE = int(os.getenv('BUFFER_SIZE'))
-RECON_TIMEOUT = int(os.getenv('RECON_TIMEOUT'))
-ROUTING_KEYS = [key.replace('{', '').replace('}', '').replace('"', '').replace(' ', '') for key in
-                os.getenv('ROUTING_KEYS').split(',')]
-TIME_INTERVAL = int(os.getenv('TIME_INTERVAL'))
-EVENT_STORAGE_URI = os.getenv('EVENT_STORAGE')
-COMPARATOR_URI = os.getenv('COMPARATOR_URI')
-RECON_NAME = str(os.getenv('RECON_NAME'))
-RULES_CONFIGURATIONS_PATH = str(os.getenv('RULES_CONFIGURATIONS_FILE'))
-RULES_PACKAGE_PATH = 'rules'
-EVENT_BATCH_MAX_SIZE = int(os.getenv('EVENT_BATCH_MAX_SIZE'))
-EVENT_BATCH_SEND_INTERVAL = int(os.getenv('EVENT_BATCH_SEND_INTERVAL'))
+with open(recon_config_path, 'r') as file:
+    recon_config = yaml.load(file, Loader=yaml.FullLoader)
 
-credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-params = pika.ConnectionParameters(virtual_host=RABBITMQ_VHOST, host=RABBITMQ_HOST, port=RABBITMQ_PORT,
-                                   credentials=credentials)
-
-connection = pika.BlockingConnection(params)
-channel = connection.channel()
-
-channel.exchange_declare(exchange=RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY, exchange_type='direct')
-
-queue_listeners = {
-    routing_key: services.QueueListener(routing_key, BUFFER_SIZE, channel, RECON_TIMEOUT,
-                                        ROUTING_KEYS.index(routing_key)) for routing_key in ROUTING_KEYS}
-
-for queue_listener in queue_listeners.values():
-    channel.queue_bind(exchange=RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY,
-                       queue=queue_listener.queue_name,
-                       routing_key=queue_listener.routing_key)
-batch_count = dict()
-for routing_key in ROUTING_KEYS:
-    batch_count[routing_key] = 0
+recon = Recon(recon_config)
 
 
-def callback(ch, method, properties, body):
-    try:
-        batch_count[method.routing_key] += 1
-        message_batch = infra_pb2.MessageBatch()
-        message_batch.ParseFromString(body)
-        for message in message_batch.messages:
-            queue_listeners[method.routing_key].buffer.put(item=message, block=True)
-            logger.debug("RABBITMQ: Received message from %r:%r timestamp %rnanos batch: %r buffer: %r/%rmsg" % (
-                method.routing_key, message.metadata.message_type, services.get_timestamp(message),
-                batch_count[method.routing_key], queue_listeners[method.routing_key].buffer.qsize(), BUFFER_SIZE))
-    except Exception as e:
-        logger.exception(f"An error occurred while processing the received message. Body: {body}", e)
+def receive_signal():
+    recon.stop()
 
 
-for queue_listener in queue_listeners.values():
-    channel.basic_consume(queue=queue_listener.queue_name,
-                          on_message_callback=callback,
-                          auto_ack=True)
-
-event_store = store.Store(EVENT_STORAGE_URI, RECON_NAME, EVENT_BATCH_MAX_SIZE, EVENT_BATCH_SEND_INTERVAL)
-comparator = comparator.Comparator(COMPARATOR_URI)
-loaded_rules = load_rules(RULES_CONFIGURATIONS_PATH, RULES_PACKAGE_PATH)
-rules = []
-for rule in loaded_rules:
-    rules.append(rule.module.Rule(event_store, ROUTING_KEYS, CACHE_SIZE, TIME_INTERVAL, comparator, rule.enabled,
-                                  rule.configuration))
-
-recon = services.Recon(rules, queue_listeners)
-
-
-def shutdown_hook():
-    try:
-        channel.stop_consuming()
-    finally:
-        recon.stop()
-
-
-atexit.register(shutdown_hook)
+signal.signal(signal.SIGTERM, receive_signal)
 
 try:
     recon.start()
-    logger.info("Waiting for messages")
-    channel.start_consuming()
-except KeyboardInterrupt:
-    shutdown_hook()
 finally:
-    shutdown_hook()
+    recon.stop()

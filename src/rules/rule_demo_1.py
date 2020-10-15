@@ -13,55 +13,72 @@
 # limitations under the License.
 
 import logging
+import string
 
-from th2recon import rule, store
-from th2recon.th2 import infra_pb2, message_comparator_pb2
+from th2recon import rule
+from th2recon.common import TableComponent, EventUtils
+from th2recon.reconcommon import MessageGroupType, ReconMessage
+from th2recon.th2 import infra_pb2
 
 logger = logging.getLogger()
 
 
 class Rule(rule.Rule):
 
-    def hashed_fields(self) -> list:
-        return ['TrdMatchID']
+    def description_of_groups(self) -> dict:
+        return {'NOS_arfq01fix01': MessageGroupType.single,
+                'ER_arfq01fix01_0': MessageGroupType.single,
+                'ER_arfq01fix01_F': MessageGroupType.single,
+                'ER_arfq01dc01_0': MessageGroupType.single,
+                'ER_arfq01dc01_F': MessageGroupType.single}
+
+    def group(self, message: ReconMessage):
+        message_type: str = message.proto_message.metadata.message_type
+        session_alias = message.proto_message.metadata.id.connection_id.session_alias
+        if message_type not in ['ExecutionReport', 'NewOrderSingle'] or \
+                session_alias not in ['arfq01fix01', 'arfq01dc01']:
+            return
+
+        message.group_id = message_type.translate({ord(c): '' for c in string.ascii_lowercase})
+        message.group_id += '_' + session_alias
+        message.group_info['session_alias'] = session_alias
+
+        if message_type == 'ExecutionReport':
+            exec_type = message.proto_message.fields['ExecType'].simple_value
+            message.group_id += '_' + exec_type
+            message.group_info['ExecType'] = exec_type
 
     def configure(self, configuration):
         pass
 
     def get_name(self) -> str:
-        return "Rule_1_demo"
+        return "Rule_1"
 
     def get_description(self) -> str:
         return "Rule_1 is used for demo"
 
-    def hash(self, message: infra_pb2.Message) -> str:
-        if message.metadata.message_type == 'Heartbeat':
-            return rule.IGNORED_HASH
-        str_fields = ""
-        for field_name in self.hashed_fields():
-            if message.fields[field_name].simple_value == '':
-                return rule.IGNORED_HASH
-            str_fields += message.fields[field_name].simple_value
-        return str(hash(message.metadata.message_type + str_fields))
+    def hash(self, message: ReconMessage):
+        cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
+        message.hash = hash(message.proto_message.fields['ClOrdID'].simple_value)
+        message.hash_info['ClOrdID'] = cl_ord_id
 
-    def check(self, messages_by_routing_key: dict) -> infra_pb2.Event:
-        settings = message_comparator_pb2.ComparisonSettings()
-        settings.ignore_fields.extend(
-            ['TargetCompID', 'SendingTime', 'BodyLength', 'CheckSum', 'MsgSeqNum', 'OnBehalfOfCompID'])
-        messages = [msg for msg in messages_by_routing_key.values()]
+    def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
         try:
-            comparison_result = self.comparator.compare(messages[0], messages[1], settings).result()
-            logger.debug(f"Rule: {self.get_name()}. Message type: {messages[0].metadata.message_type}. Check success")
-            hash_field_values = dict()
-            for field_name in self.hashed_fields():
-                if not hash_field_values.__contains__(field_name):
-                    hash_field_values[field_name] = []
-                hash_field_values[field_name].append(messages[0].fields[field_name].simple_value)
-                hash_field_values[field_name].append(messages[1].fields[field_name].simple_value)
-            return store.create_verification_event(self.rule_event_id, comparison_result, hash_field_values)
-        except Exception:
-            logger.exception(
-                f"Rule: {self.get_name()}. Error while send comparison request:\n"
-                f"Expected:{messages[0]}.\n" +
-                f"Actual:{messages[1]}. \n"
-                f"Settings:{settings}")
+            logger.info(f"RULE '{self.get_name()}': CHECK: ")
+            attach_ids = [msg.proto_message.metadata.id for msg in messages]
+
+            table = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
+            for msg in messages:
+                msg_type = msg.proto_message.metadata.message_type
+                exec_type = msg.proto_message.fields['ExecType'].simple_value
+                cl_ord_id = msg.proto_message.fields['ClOrdID'].simple_value
+                session_alias = msg.proto_message.metadata.id.connection_id.session_alias
+                table.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_id)
+
+            body = EventUtils.component_encoder().encode(table).encode()
+            event = EventUtils.create_event(name='Match from 3 group',
+                                            attached_message_ids=attach_ids,
+                                            body=body)
+            return event
+        except Exception as e:
+            logger.exception(e)
