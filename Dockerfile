@@ -7,7 +7,7 @@ ARG PASSWORD
 
 COPY . .
 
-ENV TH2_CORE_VERSION='2.0.0';
+ENV TH2_CORE_VERSION='2.0.4';
 
 RUN pip install th2-recon==$TH2_CORE_VERSION -i https://$USERNAME:$PASSWORD@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
 

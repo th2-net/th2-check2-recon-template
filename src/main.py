@@ -39,5 +39,7 @@ signal.signal(signal.SIGTERM, receive_signal)
 
 try:
     recon.start()
+except KeyboardInterrupt or Exception:
+    logger.exception("Except error and try stop Recon")
 finally:
     recon.stop()
