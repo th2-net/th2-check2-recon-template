@@ -65,19 +65,12 @@ class Rule(rule.Rule):
     def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: ")
         settings = message_comparator_pb2.ComparisonSettings()
-        try:
-            messages = [msg.proto_message for msg in messages]
-            comparison_result = self.message_comparator.compare(messages[0], messages[1], settings).result()
-            hash_field_values = dict()
-            for field_name in ['ClOrdID']:
-                if not hash_field_values.__contains__(field_name):
-                    hash_field_values[field_name] = []
-                hash_field_values[field_name].append(messages[0].fields[field_name].simple_value)
-                hash_field_values[field_name].append(messages[1].fields[field_name].simple_value)
-            return EventUtils.create_verification_event(self.rule_event.id, comparison_result, hash_field_values)
-        except Exception:
-            logger.exception(
-                f"Rule: {self.get_name()}. Error while send comparison request:\n"
-                f"Expected:{messages[0]}.\n" +
-                f"Actual:{messages[1]}. \n"
-                f"Settings:{settings}")
+        messages = [msg.proto_message for msg in messages]
+        comparison_result = self.message_comparator.compare(messages[0], messages[1], settings).result()
+        hash_field_values = dict()
+        for field_name in ['ClOrdID']:
+            if not hash_field_values.__contains__(field_name):
+                hash_field_values[field_name] = []
+            hash_field_values[field_name].append(messages[0].fields[field_name].simple_value)
+            hash_field_values[field_name].append(messages[1].fields[field_name].simple_value)
+        return EventUtils.create_verification_event(self.rule_event.id, comparison_result, hash_field_values)

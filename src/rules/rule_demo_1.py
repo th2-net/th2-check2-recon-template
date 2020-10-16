@@ -63,22 +63,19 @@ class Rule(rule.Rule):
         message.hash_info['ClOrdID'] = cl_ord_id
 
     def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
-        try:
-            logger.info(f"RULE '{self.get_name()}': CHECK: ")
-            attach_ids = [msg.proto_message.metadata.id for msg in messages]
+        logger.info(f"RULE '{self.get_name()}': CHECK: ")
+        attach_ids = [msg.proto_message.metadata.id for msg in messages]
 
-            table = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
-            for msg in messages:
-                msg_type = msg.proto_message.metadata.message_type
-                exec_type = msg.proto_message.fields['ExecType'].simple_value
-                cl_ord_id = msg.proto_message.fields['ClOrdID'].simple_value
-                session_alias = msg.proto_message.metadata.id.connection_id.session_alias
-                table.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_id)
+        table = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
+        for msg in messages:
+            msg_type = msg.proto_message.metadata.message_type
+            exec_type = msg.proto_message.fields['ExecType'].simple_value
+            cl_ord_id = msg.proto_message.fields['ClOrdID'].simple_value
+            session_alias = msg.proto_message.metadata.id.connection_id.session_alias
+            table.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_id)
 
-            body = EventUtils.component_encoder().encode(table).encode()
-            event = EventUtils.create_event(name='Match from 3 group',
-                                            attached_message_ids=attach_ids,
-                                            body=body)
-            return event
-        except Exception as e:
-            logger.exception(e)
+        body = EventUtils.component_encoder().encode(table).encode()
+        event = EventUtils.create_event(name='Match from 3 group',
+                                        attached_message_ids=attach_ids,
+                                        body=body)
+        return event
