@@ -13,14 +13,8 @@
 # limitations under the License.
 
 rabbit:
-  host: host
-  port: port
-  vhost: vhost
-  user: user
-  password: password
   prefetch_count: 1
 mq:
-  exchange_name: exchange_name
   routing_keys:
     - routing_key_1
     - routing_key_2
@@ -31,7 +25,7 @@ services:
   event_storage_uri: host:7777
   comparator_uri: host:7777
 recon:
-  recon_name: test
+  recon_name: DEMO_v2
   cache_size: 100000
   event_batch_max_size: 5
   event_batch_send_interval: 1

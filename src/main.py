@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging.config
+import os
 import signal
 import sys
 
@@ -25,8 +26,22 @@ log_file_path = str(sys.argv[2])
 logging.config.fileConfig(fname=log_file_path, disable_existing_loggers=False)
 logger = logging.getLogger()
 
+RABBITMQ_USER = os.getenv('RABBITMQ_USER')
+RABBITMQ_PASS = os.getenv('RABBITMQ_PASS')
+RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT'))
+RABBITMQ_VHOST = os.getenv('RABBITMQ_VHOST')
+RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
+RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY = os.getenv('RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY')
+
 with open(recon_config_path, 'r') as file:
-    recon_config = yaml.load(file, Loader=yaml.FullLoader)
+    recon_config: dict = yaml.load(file, Loader=yaml.FullLoader)
+
+recon_config['rabbit'].update({'host': RABBITMQ_HOST,
+                               'port': RABBITMQ_PORT,
+                               'vhost': RABBITMQ_VHOST,
+                               'user': RABBITMQ_USER,
+                               'password': RABBITMQ_PASS})
+recon_config['mq'].update({'exchange_name': RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY})
 
 recon = Recon(recon_config)
 
