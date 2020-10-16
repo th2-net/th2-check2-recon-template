@@ -16,7 +16,7 @@ import logging
 import string
 
 from th2recon import rule
-from th2recon.common import EventUtils
+from th2recon.common import EventUtils, VerificationComponent
 from th2recon.reconcommon import ReconMessage, MessageGroupType
 from th2recon.th2 import infra_pb2, message_comparator_pb2
 from th2recon.th2.infra_pb2 import Direction
@@ -46,7 +46,7 @@ class Rule(rule.Rule):
         message.group_id += '_' + Direction.Name(direction)
 
         message.group_info['session_alias'] = session_alias
-        message.group_info['direction'] = direction
+        message.group_info['direction'] = Direction.Name(direction)
 
     def configure(self, configuration):
         pass
@@ -64,13 +64,18 @@ class Rule(rule.Rule):
 
     def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: ")
+
         settings = message_comparator_pb2.ComparisonSettings()
-        messages = [msg.proto_message for msg in messages]
-        comparison_result = self.message_comparator.compare(messages[0], messages[1], settings).result()
-        hash_field_values = dict()
-        for field_name in ['ClOrdID']:
-            if not hash_field_values.__contains__(field_name):
-                hash_field_values[field_name] = []
-            hash_field_values[field_name].append(messages[0].fields[field_name].simple_value)
-            hash_field_values[field_name].append(messages[1].fields[field_name].simple_value)
-        return EventUtils.create_verification_event(self.rule_event.id, comparison_result, hash_field_values)
+        compare_result = self.message_comparator.compare(messages[0].proto_message, messages[1].proto_message, settings)
+
+        verification_component = VerificationComponent(compare_result.comparison_result)
+
+        info_for_name = dict()
+        for message in messages:
+            info_for_name.update(message.hash_info)
+
+        body = EventUtils.create_event_body(verification_component)
+        attach_ids = [msg.proto_message.metadata.id for msg in messages]
+        return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}'",
+                                       attached_message_ids=attach_ids,
+                                       body=body)

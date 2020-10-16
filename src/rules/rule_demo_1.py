@@ -64,18 +64,21 @@ class Rule(rule.Rule):
 
     def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: ")
-        attach_ids = [msg.proto_message.metadata.id for msg in messages]
 
-        table = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
+        table_component = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
         for msg in messages:
             msg_type = msg.proto_message.metadata.message_type
             exec_type = msg.proto_message.fields['ExecType'].simple_value
             cl_ord_id = msg.proto_message.fields['ClOrdID'].simple_value
             session_alias = msg.proto_message.metadata.id.connection_id.session_alias
-            table.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_id)
+            table_component.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_id)
 
-        body = EventUtils.component_encoder().encode(table).encode()
-        event = EventUtils.create_event(name='Match from 3 group',
-                                        attached_message_ids=attach_ids,
-                                        body=body)
-        return event
+        info_for_name = dict()
+        for message in messages:
+            info_for_name.update(message.hash_info)
+
+        body = EventUtils.create_event_body(table_component)
+        attach_ids = [msg.proto_message.metadata.id for msg in messages]
+        return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}' from 3 group",
+                                       attached_message_ids=attach_ids,
+                                       body=body)
