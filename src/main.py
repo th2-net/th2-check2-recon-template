@@ -33,7 +33,6 @@ RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT'))
 RABBITMQ_VHOST = os.getenv('RABBITMQ_VHOST')
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
 RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY = os.getenv('RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY')
-MEMORY_SIZE = int(os.getenv('MEMORY_SIZE'))
 
 with open(recon_config_path, 'r') as file:
     recon_config: dict = yaml.load(file, Loader=yaml.FullLoader)
@@ -46,7 +45,7 @@ recon_config['rabbit'].update({'host': RABBITMQ_HOST,
 recon_config['mq'].update({'exchange_name': RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY})
 
 soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-resource.setrlimit(resource.RLIMIT_AS, ((MEMORY_SIZE - 1) * 1024 * 1024, soft))
+resource.setrlimit(resource.RLIMIT_AS, ((recon_config['recon']['memory_size'] - 1) * 1024 * 1024, soft))
 
 recon = Recon(recon_config)
 
