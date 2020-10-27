@@ -27,7 +27,6 @@ services:
 recon:
   recon_name: DEMO_v2
   cache_size: 100000
-  memory_size: 200
   event_batch_max_size: 5
   event_batch_send_interval: 1
   rules_package_path: rules

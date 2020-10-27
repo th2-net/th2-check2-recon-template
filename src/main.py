@@ -17,7 +17,6 @@ import os
 import signal
 import sys
 
-import resource
 import yaml
 from th2recon.recon import Recon
 
@@ -43,9 +42,6 @@ recon_config['rabbit'].update({'host': RABBITMQ_HOST,
                                'user': RABBITMQ_USER,
                                'password': RABBITMQ_PASS})
 recon_config['mq'].update({'exchange_name': RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY})
-
-soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-resource.setrlimit(resource.RLIMIT_AS, ((recon_config['recon']['memory_size'] - 1) * 1024 * 1024, soft))
 
 recon = Recon(recon_config)
 
