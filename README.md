@@ -6,13 +6,7 @@ Method `hash()` computes a hash string from the received message and returns it.
 Method `check()` makes a more detailed comparison of received messages and returns `Event` of comparison.
 
 ## Installing
-Create a `pip.conf` file in the root of the virtual environment directory with the following content:
-```
-[global]
-index = https://nexus.exactpro.com/repository/th2-pypi/pypi
-index-url = https://nexus.exactpro.com/repository/th2-pypi/simple
-extra-index-url= https://pypi.org/simple
-```
+
 Use the following command to install the required dependencies:
 ```
 pip install -r requirements.txt

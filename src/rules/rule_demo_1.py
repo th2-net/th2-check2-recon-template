@@ -15,15 +15,26 @@
 import logging
 import string
 
-from th2recon import rule
-from th2recon.common import TableComponent, EventUtils
-from th2recon.reconcommon import MessageGroupType, ReconMessage
-from th2recon.th2 import infra_pb2
+from th2_check2_recon import rule
+from th2_check2_recon.common import TableComponent, EventUtils
+from th2_check2_recon.reconcommon import MessageGroupType, ReconMessage
+from th2_grpc_common.common_pb2 import Event
 
 logger = logging.getLogger()
 
 
 class Rule(rule.Rule):
+
+    def get_name(self) -> str:
+        return "Rule_1"
+
+    def get_description(self) -> str:
+        return "Rule_1 is used for demo"
+
+    def get_attributes(self) -> [list]:
+        return [
+            ['fix', 'subscribe', 'in']
+        ]
 
     def description_of_groups(self) -> dict:
         return {'NOS_arfq01fix01': MessageGroupType.single,
@@ -32,7 +43,7 @@ class Rule(rule.Rule):
                 'ER_arfq01dc01_0': MessageGroupType.single,
                 'ER_arfq01dc01_F': MessageGroupType.single}
 
-    def group(self, message: ReconMessage):
+    def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         if message_type not in ['ExecutionReport', 'NewOrderSingle'] or \
@@ -48,21 +59,12 @@ class Rule(rule.Rule):
             message.group_id += '_' + exec_type
             message.group_info['ExecType'] = exec_type
 
-    def configure(self, configuration):
-        pass
-
-    def get_name(self) -> str:
-        return "Rule_1"
-
-    def get_description(self) -> str:
-        return "Rule_1 is used for demo"
-
-    def hash(self, message: ReconMessage):
+    def hash(self, message: ReconMessage, attributes: tuple):
         cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
         message.hash = hash(message.proto_message.fields['ClOrdID'].simple_value)
         message.hash_info['ClOrdID'] = cl_ord_id
 
-    def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
+    def check(self, messages: [ReconMessage]) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: ")
 
         table_component = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])

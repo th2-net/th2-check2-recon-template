@@ -1,0 +1,34 @@
+{
+  "services": {
+    "EventStore": {
+      "service-class": "EventStoreServiceService",
+      "endpoints": {
+        "event-store": {
+          "host": "host",
+          "port": 7777
+        }
+      },
+      "strategy": {
+        "name": "robin",
+        "endpoints": [
+          "event-store"
+        ]
+      }
+    },
+    "Comparator": {
+      "service-class": "MessageComparatorServiceService",
+      "endpoints": {
+        "act": {
+          "host": "host",
+          "port": 7777
+        }
+      },
+      "strategy": {
+        "name": "robin",
+        "endpoints": [
+          "comparator"
+        ]
+      }
+    }
+  }
+}

@@ -2,8 +2,8 @@ image: docker:19.03.8
 
 variables:
   IMAGE_NAME: $REGISTRY/th2-recon-template
-  VERSION: "2.0"
-  MAINTENANCE: "6"
+  VERSION: "2.1"
+  MAINTENANCE: "0"
 
 before_script:
   - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY

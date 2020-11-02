@@ -1,0 +1,46 @@
+{
+  "queues": {
+    "ARFQ01FIX01": {
+      "name": "arfq01fix01_in",
+      "queue": "test_schema:01fix01_in",
+      "exchange": "demo_exchange",
+      "attributes": [
+        "subscribe",
+        "parsed",
+        "single",
+        "fix"
+      ],
+      "filters": [
+        {
+          "metadata": {
+            "message_type": {
+              "value": "Heartbeat",
+              "operation": "NOT_EQUAL"
+            }
+          }
+        }
+      ]
+    },
+    "ARFQ01DC01": {
+      "name": "arfq01dc01_in",
+      "queue": "test_schema:01dc01_in",
+      "exchange": "demo_exchange",
+      "attributes": [
+        "subscribe",
+        "parsed",
+        "single",
+        "dc"
+      ],
+      "filters": [
+        {
+          "metadata": {
+            "message_type": {
+              "value": "Heartbeat",
+              "operation": "NOT_EQUAL"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

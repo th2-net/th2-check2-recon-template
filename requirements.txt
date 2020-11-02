@@ -12,4 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-th2-recon==2.0.20
+--extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
+th2-check2-recon==2.1.0

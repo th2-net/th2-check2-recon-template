@@ -15,22 +15,33 @@
 import logging
 import string
 
-from th2recon import rule
-from th2recon.common import EventUtils, VerificationComponent
-from th2recon.reconcommon import ReconMessage, MessageGroupType
-from th2recon.th2 import infra_pb2, message_comparator_pb2
-from th2recon.th2.infra_pb2 import Direction
+from th2_check2_recon import rule
+from th2_check2_recon.common import EventUtils, VerificationComponent
+from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
+from th2_grpc_common.common_pb2 import Direction, Event
+from th2_grpc_util.util_pb2 import ComparisonSettings
 
 logger = logging.getLogger()
 
 
 class Rule(rule.Rule):
 
+    def get_name(self) -> str:
+        return "Rule_2"
+
+    def get_description(self) -> str:
+        return "Rule_2 is used for demo"
+
+    def get_attributes(self) -> [list]:
+        return [
+            ['fix', 'subscribe']
+        ]
+
     def description_of_groups(self) -> dict:
         return {'ER_FIRST': MessageGroupType.multi,
                 'NOS_SECOND': MessageGroupType.single}
 
-    def group(self, message: ReconMessage):
+    def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
@@ -48,24 +59,15 @@ class Rule(rule.Rule):
         message.group_info['session_alias'] = session_alias
         message.group_info['direction'] = Direction.Name(direction)
 
-    def configure(self, configuration):
-        pass
-
-    def get_name(self) -> str:
-        return "Rule_2"
-
-    def get_description(self) -> str:
-        return "Rule_2 is used for demo"
-
-    def hash(self, message: ReconMessage):
+    def hash(self, message: ReconMessage, attributes: tuple):
         cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
         message.hash = hash(message.proto_message.fields['ClOrdID'].simple_value)
         message.hash_info['ClOrdID'] = cl_ord_id
 
-    def check(self, messages: [ReconMessage]) -> infra_pb2.Event:
+    def check(self, messages: [ReconMessage]) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: ")
 
-        settings = message_comparator_pb2.ComparisonSettings()
+        settings = ComparisonSettings()
         compare_result = self.message_comparator.compare(messages[0].proto_message, messages[1].proto_message, settings)
 
         verification_component = VerificationComponent(compare_result.comparison_result)

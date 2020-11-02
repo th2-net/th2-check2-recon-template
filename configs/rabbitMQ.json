@@ -1,0 +1,8 @@
+{
+  "host": "host",
+  "vHost": "vHost",
+  "port": 7777,
+  "username": "username",
+  "password": "password",
+  "subscriberName": "subscriberName"
+}
