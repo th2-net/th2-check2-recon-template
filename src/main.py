@@ -17,7 +17,7 @@ import signal
 import sys
 
 from th2_check2_recon.recon import Recon
-from th2common.schema.factory.common_factory import CommonFactory
+from th2_common.schema.factory.common_factory import CommonFactory
 
 logging.config.fileConfig(fname=str(sys.argv[-1]), disable_existing_loggers=False)
 logger = logging.getLogger()
