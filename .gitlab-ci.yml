@@ -14,7 +14,7 @@ build_master:
   stage: build
   script:
     - docker pull $IMAGE_NAME:latest || true
-    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
+    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2 --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
     - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2
     - docker push $IMAGE_NAME:latest
   only:
@@ -29,7 +29,7 @@ build_branch:
   stage: build
   script:
     - docker pull $IMAGE_NAME:latest || true
-    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
+    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2 --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
     - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2
     - docker push $IMAGE_NAME:latest
   only:
