@@ -22,7 +22,7 @@ from th2_common.schema.factory.common_factory import CommonFactory
 logging.config.fileConfig(fname=str(sys.argv[-1]), disable_existing_loggers=False)
 logger = logging.getLogger()
 
-factory = CommonFactory.create_from_arguments(sys.argv[1:-1])
+factory = CommonFactory()
 grpc_router = factory.create_grpc_router()
 message_router = factory.create_message_router_parsed_batch()
 custom_config = factory.create_custom_configuration()
