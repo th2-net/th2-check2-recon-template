@@ -33,7 +33,7 @@ class Rule(rule.Rule):
 
     def get_attributes(self) -> [list]:
         return [
-            ['fix', 'subscribe', 'in']
+            ['parsed', 'subscribe']
         ]
 
     def description_of_groups(self) -> dict:
