@@ -4,6 +4,7 @@ variables:
   IMAGE_NAME: $REGISTRY/th2-recon-template
   VERSION: "2.1"
   MAINTENANCE: "0"
+  TEST: "schema_v2-7"
 
 before_script:
   - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY
@@ -14,8 +15,8 @@ build_master:
   stage: build
   script:
     - docker pull $IMAGE_NAME:latest || true
-    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2-6 --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
-    - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2-6
+    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
+    - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST
     - docker push $IMAGE_NAME:latest
   only:
     variables:
@@ -29,8 +30,8 @@ build_branch:
   stage: build
   script:
     - docker pull $IMAGE_NAME:latest || true
-    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2-6 --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
-    - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-schema_v2-6
+    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
+    - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST
     - docker push $IMAGE_NAME:latest
   only:
     variables:

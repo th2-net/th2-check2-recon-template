@@ -33,6 +33,7 @@ recon = Recon(event_router, grpc_router, message_router, custom_config)
 
 def receive_signal():
     recon.stop()
+    factory.close()
 
 
 signal.signal(signal.SIGTERM, receive_signal)
