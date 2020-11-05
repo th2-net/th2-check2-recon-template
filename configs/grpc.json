@@ -1,33 +1,23 @@
 {
+  "server": {
+    "host": null,
+    "port": 8080,
+    "workers": 5
+  },
   "services": {
-    "EventStore": {
-      "service-class": "EventStoreServiceService",
+    "messageComparatorServiceService": {
       "endpoints": {
-        "event-store": {
-          "host": "host",
-          "port": 7777
+        "util-endpoint": {
+          "host": "util",
+          "port": 8080
         }
       },
+      "service-class": "com.exactpro.th2.util.grpc.MessageComparatorServiceService",
       "strategy": {
-        "name": "robin",
         "endpoints": [
-          "event-store"
-        ]
-      }
-    },
-    "Comparator": {
-      "service-class": "MessageComparatorServiceService",
-      "endpoints": {
-        "act": {
-          "host": "host",
-          "port": 7777
-        }
-      },
-      "strategy": {
-        "name": "robin",
-        "endpoints": [
-          "comparator"
-        ]
+          "util-endpoint"
+        ],
+        "name": "robin"
       }
     }
   }

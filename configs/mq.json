@@ -1,46 +1,36 @@
 {
   "queues": {
-    "ARFQ01FIX01": {
-      "name": "arfq01fix01_in",
-      "queue": "test_schema:01fix01_in",
-      "exchange": "demo_exchange",
+    "event-store-pin": {
       "attributes": [
-        "subscribe",
-        "parsed",
-        "single",
-        "fix"
+        "event",
+        "publish"
       ],
-      "filters": [
-        {
-          "metadata": {
-            "message_type": {
-              "value": "Heartbeat",
-              "operation": "NOT_EQUAL"
-            }
-          }
-        }
-      ]
+      "exchange": "demo_exchange",
+      "filters": [],
+      "name": "routing-key_schema-dev_recon[event-store-pin]",
+      "queue": "not_necessary"
     },
-    "ARFQ01DC01": {
-      "name": "arfq01dc01_in",
-      "queue": "test_schema:01dc01_in",
-      "exchange": "demo_exchange",
+    "in": {
       "attributes": [
         "subscribe",
         "parsed",
-        "single",
-        "dc"
+        "first"
       ],
-      "filters": [
-        {
-          "metadata": {
-            "message_type": {
-              "value": "Heartbeat",
-              "operation": "NOT_EQUAL"
-            }
-          }
-        }
-      ]
+      "exchange": "demo_exchange",
+      "filters": [],
+      "name": "not_necessary",
+      "queue": "queue_schema-dev_recon[in]"
+    },
+    "out": {
+      "attributes": [
+        "subscribe",
+        "parsed",
+        "second"
+      ],
+      "exchange": "demo_exchange",
+      "filters": [],
+      "name": "not_necessary",
+      "queue": "queue_schema-dev_recon[out]"
     }
   }
 }
