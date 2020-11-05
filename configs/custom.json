@@ -1,21 +1,23 @@
 {
+  "cache_size": "5000",
+  "event_batch_max_size": "10",
+  "event_batch_send_interval": "1",
   "recon_name": "Schema_Recon",
-  "cache_size": 5000,
-  "event_batch_max_size": 10,
-  "event_batch_send_interval": 1,
-  "rules_package_path": "rules",
-  "rules": {
-    "rule_demo_1": {
-      "enabled": true,
-      "match_timeout": 10,
-      "match_timeout_offset_ns": 0,
-      "configuration": null
+  "rules": [
+    {
+      "configuration": "",
+      "enabled": "true",
+      "match_timeout": "10",
+      "match_timeout_offset_ns": "0",
+      "name": "rule_demo_1"
     },
-    "rule_demo_2": {
-      "enabled": true,
-      "match_timeout": 10,
-      "match_timeout_offset_ns": 0,
-      "configuration": null
+    {
+      "configuration": "",
+      "enabled": "true",
+      "match_timeout": "10",
+      "match_timeout_offset_ns": "0",
+      "name": "rule_demo_2"
     }
-  }
+  ],
+  "rules_package_path": "rules"
 }

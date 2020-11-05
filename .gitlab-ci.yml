@@ -4,7 +4,7 @@ variables:
   IMAGE_NAME: $REGISTRY/th2-recon-template
   VERSION: "2.1"
   MAINTENANCE: "0"
-  TEST: "schema_v2-9"
+  TEST: "schema_v2-10"
 
 before_script:
   - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY
