@@ -13,4 +13,4 @@
 # limitations under the License.
 
 --extra-index-url https://nexus.exactpro.com/repository/th2-pypi/simple/
-th2-check2-recon==2.1.0-schema-v2-8
+th2-check2-recon==2.1.0-schema-v2-9
