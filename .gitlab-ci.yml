@@ -1,38 +1,11 @@
-image: docker:19.03.8
-
 variables:
-  IMAGE_NAME: $REGISTRY/th2-recon-template
-  VERSION: "2.1"
-  MAINTENANCE: "0"
-  TEST: "schema_v2-13"
+  APP_NAME: 'th2-check2-recon-template'
+  MAJOR_VERSION: '2'
+  MINOR_VERSION: '0'
+  MAINTENANCE_VERSION: '0'
+  PYPI_PUBLISH_ENABLED: "true"
 
-before_script:
-  - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY
-
-build_master:
-  tags:
-  - docker-in-docker
-  stage: build
-  script:
-    - docker pull $IMAGE_NAME:latest || true
-    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
-    - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST
-    - docker push $IMAGE_NAME:latest
-  only:
-    variables:
-      - $CI_COMMIT_REF_NAME == "master"
-
-build_branch:
-  variables:
-    IMAGE_NAME: $REGISTRY/th2-recon-template/$CI_COMMIT_REF_SLUG
-  tags:
-  - docker-in-docker
-  stage: build
-  script:
-    - docker pull $IMAGE_NAME:latest || true
-    - docker build --cache-from $IMAGE_NAME:latest  --tag $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST --tag $IMAGE_NAME:latest --build-arg USERNAME=$NEXUS_USERNAME --build-arg PASSWORD=$NEXUS_PASSWORD .
-    - docker push $IMAGE_NAME:$VERSION.$MAINTENANCE-$TEST
-    - docker push $IMAGE_NAME:latest
-  only:
-    variables:
-      - $CI_COMMIT_REF_NAME != "master"
+include:
+  - project: 'vivarium/th2/pipelines'
+    ref: master
+    file: '/.gitlab-ci-python.yml'

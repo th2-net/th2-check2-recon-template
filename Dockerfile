@@ -1,14 +1,8 @@
 FROM python:3.8-slim
-
+ARG app_name
+ARG app_version
 WORKDIR /usr/src/app
-
-ARG USERNAME
-ARG PASSWORD
-
 COPY . .
-
-ENV TH2_CORE_VERSION='2.1.0-schema-v2-13'
-
-RUN pip install th2-check2-recon==$TH2_CORE_VERSION -i https://$USERNAME:$PASSWORD@nexus.exactpro.com/repository/th2-pypi/simple/ --extra-index-url https://pypi.python.org/simple/
-
-CMD [ "python", "./src/main.py", "log_config.conf"]
+RUN printf '{"package_name":"%s","package_version":"%s"}' "$app_name" "$app_version" > "package_info.json" && \
+    pip install -r requirements.txt
+ENTRYPOINT [ "python", "./src/main.py", "log_config.conf"]
