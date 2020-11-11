@@ -37,17 +37,17 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'NOS_arfq02fix07': MessageGroupType.single,
-                'ER_arfq02fix07_0': MessageGroupType.single,
-                'ER_arfq02fix07_F': MessageGroupType.single,
-                'ER_arfq02dc02_0': MessageGroupType.single,
-                'ER_arfq02dc02_F': MessageGroupType.single}
+        return {'NOS_arfq01fix02': MessageGroupType.single,
+                'ER_arfq01fix02_0': MessageGroupType.single,
+                'ER_arfq01fix02_F': MessageGroupType.single,
+                'ER_arfq01dc02_0': MessageGroupType.single,
+                'ER_arfq01dc02_F': MessageGroupType.single}
 
     def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         if message_type not in ['ExecutionReport', 'NewOrderSingle'] or \
-                session_alias not in ['arfq02fix07', 'arfq02dc02']:
+                session_alias not in ['arfq01fix02', 'arfq01dc02']:
             return
 
         message.group_id = message_type.translate({ord(c): '' for c in string.ascii_lowercase})
