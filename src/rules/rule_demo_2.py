@@ -45,7 +45,7 @@ class Rule(rule.Rule):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        if session_alias not in ['arfq01fix01', 'arfq02fix01'] or \
+        if session_alias not in ['arfq01fix02', 'arfq02fix07'] or \
                 message_type not in ['ExecutionReport', 'NewOrderSingle']:
             return
 
