@@ -23,10 +23,10 @@ logging.config.fileConfig(fname=str(sys.argv[-1]), disable_existing_loggers=Fals
 logger = logging.getLogger()
 
 factory = CommonFactory()
-grpc_router = factory.create_grpc_router()
-message_router = factory.create_message_router_parsed_batch()
+grpc_router = factory.grpc_router
+message_router = factory.message_parsed_batch_router
 custom_config = factory.create_custom_configuration()
-event_router = factory.create_event_router_batch()
+event_router = factory.event_router_batch
 
 recon = Recon(event_router, grpc_router, message_router, custom_config)
 
