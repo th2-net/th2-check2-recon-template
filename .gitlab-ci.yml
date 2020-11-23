@@ -1,11 +1,8 @@
 variables:
-  APP_NAME: 'th2-check2-recon-template'
-  MAJOR_VERSION: '2'
-  MINOR_VERSION: '0'
-  MAINTENANCE_VERSION: '9'
+  APP_NAME: "th2-check2-recon-template"
   PYPI_PUBLISH_ENABLED: "false"
 
 include:
-  - project: 'vivarium/th2/pipelines'
+  - project: "vivarium/th2/pipelines"
     ref: master
-    file: '/.gitlab-ci-python.yml'
+    file: "/.gitlab-ci-python.yml"
