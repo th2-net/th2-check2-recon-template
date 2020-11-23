@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import logging
-import string
 
 from th2_check2_recon import rule
-from th2_check2_recon.common import TableComponent, EventUtils
-from th2_check2_recon.reconcommon import MessageGroupType, ReconMessage
+from th2_check2_recon.common import EventUtils, VerificationComponent
+from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
 from th2_grpc_common.common_pb2 import Event
+from th2_grpc_util.util_pb2 import ComparisonSettings
 
 logger = logging.getLogger()
 
@@ -26,10 +26,10 @@ logger = logging.getLogger()
 class Rule(rule.Rule):
 
     def get_name(self) -> str:
-        return 'Rule_1'
+        return 'log vs conn'
 
     def get_description(self) -> str:
-        return 'Rule_1 is used for demo'
+        return 'NOS from log reconciled with NOS from demo-conn1 and demo-conn2 by ClOrdID'
 
     def get_attributes(self) -> [list]:
         return [
@@ -37,27 +37,26 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'NOS_arfq01fix04': MessageGroupType.single,
-                'ER_arfq01fix04_0': MessageGroupType.single,
-                'ER_arfq01fix04_F': MessageGroupType.single,
-                'ER_arfq01dc04_0': MessageGroupType.single,
-                'ER_arfq01dc04_F': MessageGroupType.single}
+        return {'NOS_LOG': MessageGroupType.single,
+                'NOS_CONN': MessageGroupType.single}
 
     def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
-        if message_type not in ['ExecutionReport', 'NewOrderSingle'] or \
-                session_alias not in ['arfq01fix04', 'arfq01dc04']:
+        direction = message.proto_message.metadata.id.direction
+        if session_alias not in ['demo-conn1', 'demo-conn2', 'demo_log.txt'] or \
+                message_type not in ['NewOrderSingle']:
             return
 
-        message.group_id = message_type.translate({ord(c): '' for c in string.ascii_lowercase})
-        message.group_id += '_' + session_alias
-        message.group_info['session_alias'] = session_alias
+        if message_type == 'NewOrderSingle' and \
+                message.proto_message.fields['ClOrdID'].simple_value == "":
+            logger.info(f"RULE '{self.get_name()}'. NOS with empty ClOrdID: {message.proto_message}.")
+            return
 
-        if message_type == 'ExecutionReport':
-            exec_type = message.proto_message.fields['ExecType'].simple_value
-            message.group_id += '_' + exec_type
-            message.group_info['ExecType'] = exec_type
+        if session_alias in ['demo-conn1', 'demo-conn2']:
+            message.group_id = 'NOS_CONN'
+        elif session_alias in ['demo_log.txt']:
+            message.group_id = 'NOS_LOG'
 
     def hash(self, message: ReconMessage, attributes: tuple):
         cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
@@ -65,22 +64,21 @@ class Rule(rule.Rule):
         message.hash_info['ClOrdID'] = cl_ord_id
 
     def check(self, messages: [ReconMessage]) -> Event:
-        logger.info(f"RULE '{self.get_name()}': CHECK: ")
+        logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
-        table_component = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
-        for msg in messages:
-            msg_type = msg.proto_message.metadata.message_type
-            exec_type = msg.proto_message.fields['ExecType'].simple_value
-            cl_ord_id = msg.proto_message.fields['ClOrdID'].simple_value
-            session_alias = msg.proto_message.metadata.id.connection_id.session_alias
-            table_component.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_id)
+        settings = ComparisonSettings()
+        settings.ignore_fields.extend(
+            ['CheckSum', 'BodyLength', 'SendingTime'])
+        compare_result = self.message_comparator.compare(messages[0].proto_message, messages[1].proto_message, settings)
+
+        verification_component = VerificationComponent(compare_result.comparison_result)
 
         info_for_name = dict()
         for message in messages:
             info_for_name.update(message.hash_info)
 
-        body = EventUtils.create_event_body(table_component)
+        body = EventUtils.create_event_body(verification_component)
         attach_ids = [msg.proto_message.metadata.id for msg in messages]
-        return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}' from 3 group",
+        return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}'",
                                        attached_message_ids=attach_ids,
                                        body=body)
