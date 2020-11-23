@@ -26,7 +26,7 @@ factory = CommonFactory()
 grpc_router = factory.grpc_router
 message_router = factory.message_parsed_batch_router
 custom_config = factory.create_custom_configuration()
-event_router = factory.event_router_batch
+event_router = factory.event_batch_router
 
 recon = Recon(event_router, grpc_router, message_router, custom_config)
 
