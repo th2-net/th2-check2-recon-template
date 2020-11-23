@@ -129,11 +129,6 @@ spec:
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
-      - name: "rule_demo_2"
-        enabled: true
-        match_timeout: 10
-        match_timeout_offset_ns: 0
-        configuration: ""
   pins:
     - name: incoming 
       connection-type: mq
