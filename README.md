@@ -129,6 +129,21 @@ spec:
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
+      - name: "demo_conn1_vs_demo_conn2"
+        enabled: true
+        match_timeout: 10
+        match_timeout_offset_ns: 0
+        configuration: ""
+      - name: "FIX_vs_DC"
+        enabled: true
+        match_timeout: 10
+        match_timeout_offset_ns: 0
+        configuration: ""
+      - name: "read_log_vs_conn"
+        enabled: true
+        match_timeout: 10
+        match_timeout_offset_ns: 0
+        configuration: ""
   pins:
     - name: incoming 
       connection-type: mq
