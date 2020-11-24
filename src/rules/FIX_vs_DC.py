@@ -15,10 +15,9 @@
 import logging
 
 from th2_check2_recon import rule
-from th2_check2_recon.common import EventUtils, VerificationComponent, ComparatorUtils
+from th2_check2_recon.common import EventUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
-from th2_grpc_common.common_pb2 import Direction, Event, EventStatus
-from th2_grpc_util.util_pb2 import ComparisonSettings, ComparisonEntryStatus
+from th2_grpc_common.common_pb2 import Direction, Event
 
 logger = logging.getLogger()
 
@@ -73,22 +72,16 @@ class Rule(rule.Rule):
     def check(self, messages: [ReconMessage]) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
-        settings = ComparisonSettings()
-        settings.ignore_fields.extend(
-            ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID'])
-        compare_result = self.message_comparator.compare(messages[0].proto_message, messages[1].proto_message, settings)
-
-        verification_component = VerificationComponent(compare_result.comparison_result)
+        ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID']
+        verification_component = self.message_comparator.compare_messages(messages, ignore_fields)
 
         info_for_name = dict()
         for message in messages:
             info_for_name.update(message.hash_info)
 
         body = EventUtils.create_event_body(verification_component)
-        status = EventStatus.FAILED if ComparatorUtils.get_status_type(
-            compare_result.comparison_result) == ComparisonEntryStatus.FAILED else EventStatus.SUCCESS
         attach_ids = [msg.proto_message.metadata.id for msg in messages]
         return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}'",
-                                       status=status,
+                                       status=verification_component.status,
                                        attached_message_ids=attach_ids,
                                        body=body)
