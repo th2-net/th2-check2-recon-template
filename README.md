@@ -144,6 +144,11 @@ spec:
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
+      - name: "security_status_log_conn"
+        enabled: true
+        match_timeout: 10
+        match_timeout_offset_ns: 0
+        configuration: ""
   pins:
     - name: incoming 
       connection-type: mq

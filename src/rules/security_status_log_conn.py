@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import string
 
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, VerificationComponent, ComparatorUtils
@@ -26,10 +27,10 @@ logger = logging.getLogger()
 class Rule(rule.Rule):
 
     def get_name(self) -> str:
-        return "FIX vs DC"
+        return "RefData log vs conn"
 
     def get_description(self) -> str:
-        return "ER from FIX reconciled with ER from DC by ClOrdID and ExecType"
+        return "SS from log reconciled with SS from demo-conn1 and demo-conn2 by SecurityStatusReqID"
 
     def get_attributes(self) -> [list]:
         return [
@@ -37,45 +38,38 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'ER_FIX': MessageGroupType.single,
-                'ER_DC': MessageGroupType.single}
+        return {'SS_LOG': MessageGroupType.single,
+                'SS_CONN': MessageGroupType.single}
 
     def group(self, message: ReconMessage, attributes: tuple):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        if session_alias not in ['demo-conn1', 'demo-conn2', 'demo-dc1', 'demo-dc2'] or \
-                message_type not in ['ExecutionReport']:
+        if session_alias not in ['demo-conn1', 'security_status.txt'] or \
+                message_type not in ['SecurityStatus']:
             return
 
-        if message_type == 'ExecutionReport' and direction != Direction.FIRST:
+        if message_type == 'SecurityStatus' and \
+                message.proto_message.fields['SecurityStatusReqID'].simple_value == "":
+            logger.info(f"RULE '{self.get_name()}'. SS with empty SecurityStatusReqID: {message.proto_message}.")
             return
 
         if session_alias in ['demo-conn1', 'demo-conn2']:
-            message.group_id = 'ER_FIX'
-        elif session_alias in ['demo-dc1', 'demo-dc2']:
-            message.group_id = 'ER_DC'
+            message.group_id = 'SS_CONN'
+        elif session_alias in ['security_status.txt']:
+            message.group_id = 'SS_LOG'
 
     def hash(self, message: ReconMessage, attributes: tuple):
-        exec_type = message.proto_message.fields['ExecType'].simple_value
-        cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
-        exec_id = message.proto_message.fields['ExecID'].simple_value
-        val = ''
-        for field_name in ['ClOrdID', 'ExecType', 'ExecID']:
-            if message.proto_message.fields[field_name].simple_value == '':
-                return
-            val += message.proto_message.fields[field_name].simple_value
-        message.hash = hash(val)
-        message.hash_info['ClOrdID'] = cl_ord_id
-        message.hash_info['ExecType'] = exec_type
-        message.hash_info['ExecID'] = exec_id
+        trd_match_id = message.proto_message.fields['SecurityStatusReqID'].simple_value
+        message.hash = hash(message.proto_message.fields['SecurityStatusReqID'].simple_value)
+        message.hash_info['SecurityStatusReqID'] = trd_match_id
 
     def check(self, messages: [ReconMessage]) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
         settings = ComparisonSettings()
         settings.ignore_fields.extend(
-            ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID'])
+            ['CheckSum', 'BodyLength', 'SendingTime', 'MsgSeqNum'])
         compare_result = self.message_comparator.compare(messages[0].proto_message, messages[1].proto_message, settings)
 
         verification_component = VerificationComponent(compare_result.comparison_result)
