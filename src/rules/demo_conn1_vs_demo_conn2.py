@@ -13,12 +13,13 @@
 # limitations under the License.
 
 import logging
+import string
 
 from th2_check2_recon import rule
-from th2_check2_recon.common import EventUtils, VerificationComponent
+from th2_check2_recon.common import EventUtils, VerificationComponent, ComparatorUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
-from th2_grpc_common.common_pb2 import Direction, Event
-from th2_grpc_util.util_pb2 import ComparisonSettings
+from th2_grpc_common.common_pb2 import Direction, Event, EventStatus
+from th2_grpc_util.util_pb2 import ComparisonSettings, ComparisonEntryStatus
 
 logger = logging.getLogger()
 
@@ -26,10 +27,10 @@ logger = logging.getLogger()
 class Rule(rule.Rule):
 
     def get_name(self) -> str:
-        return 'demo-conn1 vs demo-conn2'
+        return "demo-conn1 vs demo-conn2"
 
     def get_description(self) -> str:
-        return 'ER from demo-conn1 reconciled with ER from demo-conn1 by TrdMatchID'
+        return "ER from demo-conn1 reconciled with ER from demo-conn1 by TrdMatchID"
 
     def get_attributes(self) -> [list]:
         return [
@@ -55,7 +56,7 @@ class Rule(rule.Rule):
             return
 
         if message_type == 'ExecutionReport' and \
-                message.proto_message.fields['TrdMatchID'].simple_value == '':
+                message.proto_message.fields['TrdMatchID'].simple_value == "":
             logger.info(f"RULE '{self.get_name()}'. ER with empty TrdMatchID: {message.proto_message}.")
             return
 
@@ -85,7 +86,10 @@ class Rule(rule.Rule):
             info_for_name.update(message.hash_info)
 
         body = EventUtils.create_event_body(verification_component)
+        status = EventStatus.FAILED if ComparatorUtils.get_status_type(
+            compare_result.comparison_result) == ComparisonEntryStatus.FAILED else EventStatus.SUCCESS
         attach_ids = [msg.proto_message.metadata.id for msg in messages]
         return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}'",
+                                       status=status,
                                        attached_message_ids=attach_ids,
                                        body=body)
