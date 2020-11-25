@@ -28,7 +28,7 @@ class Rule(rule.Rule):
         return "demo-conn1 vs demo-conn2"
 
     def get_description(self) -> str:
-        return "ER from demo-conn1 reconciled with ER from demo-conn1 by TrdMatchID"
+        return "Trader DEMO-CONN1 and trader DEMO-CONN2 both receive ExecutionReport with the same TrdMatchID"
 
     def get_attributes(self) -> [list]:
         return [
