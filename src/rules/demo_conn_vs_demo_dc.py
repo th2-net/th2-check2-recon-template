@@ -72,7 +72,7 @@ class Rule(rule.Rule):
     def check(self, messages: [ReconMessage]) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
-        ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID']
+        ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'MsgSeqNum']
         verification_component = self.message_comparator.compare_messages(messages, ignore_fields)
 
         info_for_name = dict()
