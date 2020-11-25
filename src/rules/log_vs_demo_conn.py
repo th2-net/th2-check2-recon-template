@@ -25,10 +25,10 @@ logger = logging.getLogger()
 class Rule(rule.Rule):
 
     def get_name(self) -> str:
-        return "log vs conn"
+        return "log vs demo-conn"
 
     def get_description(self) -> str:
-        return "NOS from log reconciled with NOS from demo-conn1 and demo-conn2 by ClOrdID"
+        return "NewOrderSingle message written to the logs and original NewOrderSingle message sent through the conn are the same"
 
     def get_attributes(self) -> [list]:
         return [

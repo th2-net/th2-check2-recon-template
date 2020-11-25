@@ -29,7 +29,7 @@ class Rule(rule.Rule):
         return 'Rule_1'
 
     def get_description(self) -> str:
-        return 'Rule_1 is used for demo'
+        return 'Example rule'
 
     def get_attributes(self) -> [list]:
         return [
