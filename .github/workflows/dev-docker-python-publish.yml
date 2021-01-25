@@ -44,5 +44,5 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.prop }}
-          labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.version.outputs.prop }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
+          labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.pack_ver.outputs.value }}
