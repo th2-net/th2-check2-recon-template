@@ -1,8 +1,8 @@
-name: Build and publish Docker distributions to Github Container Registry ghcr.io
+name: Dev build and publish Docker distributions to Github Container Registry ghcr.io
 
 on:
   push:
-    branches:
+    branches-ignore:
       - master
 #    paths:
 #    - gradle.properties
@@ -23,15 +23,26 @@ jobs:
       - run: echo "::set-output name=REPOSITORY_NAME::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
         id: meta
       - name: Get package version
-        id: version
+        id: pack_ver
         uses: notiz-dev/github-action-json-property@release
         with:
           path: package_info.json
           prop_path: package_version
+      - name: Build custom package version
+        id: release_ver
+        run: echo ::set-output name=value::"${{ steps.pack_ver.outputs.prop }}.dev${{ github.run_id }}"
+      - name: Show package version
+        run: echo ${{ steps.release_ver.outputs.value }}
+      - name: Set version for current build in package_info.json
+        uses: MerthinTechnologies/edit-json-action@v1
+        with:
+          filename: './package_info.json'
+          key: 'package_version'
+          value: ${{ steps.release_ver.outputs.value }}
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.prop }}
-          labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.version.outputs.prop }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
+          labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.pack_ver.outputs.value }}
