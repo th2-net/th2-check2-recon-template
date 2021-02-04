@@ -89,6 +89,7 @@ it will be determined which messages to delete and which to keep.
 
 * **recon_name** - name report in GUI.
 * **cache_size** - maximum *message group* size.
+* **shared_group_size** - maximum *shared message group* size.
 * **rules_package_path** - directory where *rules* are located.
 * **event_batch_max_size** - maximum number of events in one *EventBatch*.
 * **event_batch_send_interval** - how often to send *EventBatch* with events.
@@ -98,6 +99,7 @@ it will be determined which messages to delete and which to keep.
 
 + **name** - name of the file containing the rule.
 + **enabled** - should *rule* be used or not.
++ **shared_group_permission** - *write*, *read*, *none* value.
 + **match_timeout** - time interval between compared messages in seconds.
 + **match_timeout_offset_ns** - time interval between compared messages offset in nanoseconds.
 
@@ -120,32 +122,44 @@ spec:
   custom-config:
     recon_name: Demo_Recon
     cache_size: 5000
+    shared_group_size: 5000
     event_batch_max_size: 100
     event_batch_send_interval: 1
     rules_package_path: rules
     rules:
       - name: "rule_demo_1"
         enabled: true
+        shared_group_permission: none
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
       - name: "demo_conn1_vs_demo_conn2"
         enabled: true
+        shared_group_permission: none
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
       - name: "FIX_vs_DC"
         enabled: true
+        shared_group_permission: none
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
       - name: "read_log_vs_conn"
         enabled: true
+        shared_group_permission: none
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
-      - name: "security_status_log_conn"
+      - name: "shared_group_writer"
         enabled: true
+        shared_group_permission: write
+        match_timeout: 10
+        match_timeout_offset_ns: 0
+        configuration: ""
+      - name: "shared_group_reader"
+        enabled: true
+        shared_group_permission: read
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""

@@ -1,4 +1,4 @@
-# Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+# Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,18 +17,21 @@ import signal
 import sys
 
 from th2_check2_recon.recon import Recon
+from th2_check2_recon.services import MessageComparator
 from th2_common.schema.factory.common_factory import CommonFactory
+from th2_grpc_util.util_service import MessageComparatorService
 
 logging.config.fileConfig(fname=str(sys.argv[-1]), disable_existing_loggers=False)
 logger = logging.getLogger()
 
 factory = CommonFactory()
 grpc_router = factory.grpc_router
+event_router = factory.event_batch_router
 message_router = factory.message_parsed_batch_router
 custom_config = factory.create_custom_configuration()
-event_router = factory.event_batch_router
+message_comparator = MessageComparator(grpc_router.get_service(MessageComparatorService))
 
-recon = Recon(event_router, grpc_router, message_router, custom_config)
+recon = Recon(event_router, message_router, custom_config, message_comparator)
 
 
 def receive_signal():
