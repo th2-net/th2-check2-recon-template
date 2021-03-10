@@ -39,7 +39,7 @@ class Rule(rule.Rule):
         return {'SS_LOG': MessageGroupType.single,
                 'SS_CONN': MessageGroupType.single}
 
-    def group(self, message: ReconMessage, attributes: tuple):
+    def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
@@ -57,12 +57,12 @@ class Rule(rule.Rule):
         elif session_alias in ['security_status.txt']:
             message.group_id = 'SS_LOG'
 
-    def hash(self, message: ReconMessage, attributes: tuple):
+    def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         trd_match_id = message.proto_message.fields['SecurityStatusReqID'].simple_value
         message.hash = hash(message.proto_message.fields['SecurityStatusReqID'].simple_value)
         message.hash_info['SecurityStatusReqID'] = trd_match_id
 
-    def check(self, messages: [ReconMessage]) -> Event:
+    def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
         ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'MsgSeqNum']

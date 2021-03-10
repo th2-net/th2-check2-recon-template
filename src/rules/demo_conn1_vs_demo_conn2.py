@@ -39,7 +39,7 @@ class Rule(rule.Rule):
         return {'ER_FIX01': MessageGroupType.single,
                 'ER_FIX02': MessageGroupType.single}
 
-    def group(self, message: ReconMessage, attributes: tuple):
+    def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
@@ -63,12 +63,12 @@ class Rule(rule.Rule):
         elif session_alias in ['demo-conn2']:
             message.group_id = 'ER_FIX02'
 
-    def hash(self, message: ReconMessage, attributes: tuple):
+    def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         trd_match_id = message.proto_message.fields['TrdMatchID'].simple_value
         message.hash = hash(message.proto_message.fields['TrdMatchID'].simple_value)
         message.hash_info['TrdMatchID'] = trd_match_id
 
-    def check(self, messages: [ReconMessage]) -> Event:
+    def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
         ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'PartyID', 'OrderID', 'CumQty',
