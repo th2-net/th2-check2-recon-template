@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd().resolve()))
+
 import logging.config
 import signal
-import sys
-
 from th2_check2_recon.recon import Recon
 from th2_common.schema.factory.common_factory import CommonFactory
 
