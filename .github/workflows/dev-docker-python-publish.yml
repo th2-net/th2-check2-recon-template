@@ -4,6 +4,7 @@ on:
   push:
     branches-ignore:
       - master
+      - version-2
 #    paths:
 #    - gradle.properties
 #    - package_info.json
