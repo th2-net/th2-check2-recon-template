@@ -28,7 +28,8 @@ class Rule(rule.Rule):
         return "log vs demo-conn"
 
     def get_description(self) -> str:
-        return "NewOrderSingle message written to the logs and original NewOrderSingle message sent through the conn are the same"
+        return "NewOrderSingle message written to the logs and original " \
+               "NewOrderSingle message sent through the conn are the same"
 
     def get_attributes(self) -> [list]:
         return [
