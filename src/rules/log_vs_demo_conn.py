@@ -40,7 +40,7 @@ class Rule(rule.Rule):
         return {'NOS_LOG': MessageGroupType.single,
                 'NOS_CONN': MessageGroupType.single}
 
-    def group(self, message: ReconMessage, attributes: tuple, **kwargs):
+    def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
@@ -58,7 +58,7 @@ class Rule(rule.Rule):
         elif session_alias in ['demo_log.txt']:
             message.group_id = 'NOS_LOG'
 
-    def hash(self, message: ReconMessage, attributes: tuple, **kwargs):
+    def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         cl_ord_id = message.proto_message.fields['SecondaryClOrdID'].simple_value
         security_id = message.proto_message.fields['SecurityID'].simple_value
         val = ''
@@ -70,7 +70,7 @@ class Rule(rule.Rule):
         message.hash_info['SecondaryClOrdID'] = cl_ord_id
         message.hash_info['SecurityID'] = security_id
 
-    def check(self, messages: [ReconMessage], **kwargs) -> Event:
+    def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
         ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TransactTime', 'MsgSeqNum', 'ClOrdID']

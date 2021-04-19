@@ -43,7 +43,7 @@ class Rule(rule.Rule):
                 'ER_arfq01dc04_0': MessageGroupType.single,
                 'ER_arfq01dc04_F': MessageGroupType.single}
 
-    def group(self, message: ReconMessage, attributes: tuple, **kwargs):
+    def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         if message_type not in ['ExecutionReport', 'NewOrderSingle'] or \
@@ -59,12 +59,12 @@ class Rule(rule.Rule):
             message.group_id += '_' + exec_type
             message.group_info['ExecType'] = exec_type
 
-    def hash(self, message: ReconMessage, attributes: tuple, **kwargs):
+    def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
         message.hash = hash(message.proto_message.fields['ClOrdID'].simple_value)
         message.hash_info['ClOrdID'] = cl_ord_id
 
-    def check(self, messages: [ReconMessage], **kwargs) -> Event:
+    def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: ")
 
         table_component = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
