@@ -19,7 +19,7 @@ import sys
 from th2_check2_recon.recon import Recon
 from th2_check2_recon.services import MessageComparator
 from th2_common.schema.factory.common_factory import CommonFactory
-from th2_grpc_util.util_service import MessageComparatorService
+from th2_grpc_util.message_comparator_service import MessageComparatorService
 
 logging.config.fileConfig(fname=str(sys.argv[-1]), disable_existing_loggers=False)
 logger = logging.getLogger()
