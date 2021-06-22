@@ -25,13 +25,14 @@ logging.config.fileConfig(fname=str(sys.argv[-1]), disable_existing_loggers=Fals
 logger = logging.getLogger()
 
 factory = CommonFactory()
-grpc_router = factory.grpc_router
 event_router = factory.event_batch_router
 message_router = factory.message_parsed_batch_router
 custom_config = factory.create_custom_configuration()
+grpc_router = factory.grpc_router
 message_comparator = MessageComparator(grpc_router.get_service(MessageComparatorService))
+grpc_server = grpc_router.start_server()
 
-recon = Recon(event_router, message_router, custom_config, message_comparator)
+recon = Recon(event_router, message_router, custom_config, message_comparator, grpc_server)
 
 
 def receive_signal(signum, frame):
