@@ -110,7 +110,7 @@ To install all the necessary dependencies, you need to install all the packages 
 The config for a *Recon* with two *rules* will look like this:
 ```buildoutcfg
 apiVersion: th2.exactpro.com/v1
-kind: Th2GenericBox
+kind: Th2Box
 metadata:
   name: recon
 spec:
@@ -134,17 +134,17 @@ spec:
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
-      - name: "FIX_vs_DC"
+      - name: "demo_conn_vs_demo_dc"
         enabled: true
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
-      - name: "read_log_vs_conn"
+      - name: "log_vs_demo_conn"
         enabled: true
         match_timeout: 10
         match_timeout_offset_ns: 0
         configuration: ""
-      - name: "security_status_log_conn"
+      - name: "refData_vs_demo_conn"
         enabled: true
         match_timeout: 10
         match_timeout_offset_ns: 0
@@ -170,13 +170,14 @@ metadata:
 spec:
   boxes-relation:
     router-grpc:
-      - name: recon-to-util
+      - name: recon-comon3-to-util
         from:
+          service-class: com.exactpro.th2.util.MessageComparator
           strategy: filter
           box: recon
           pin: to_util
         to:
-          service-class: com.exactpro.th2.util.grpc.MessageComparatorServiceService
+          service-class: com.exactpro.th2.util.grpc.MessageComparatorService
           strategy: robin
           box: util
           pin: server
