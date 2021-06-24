@@ -48,4 +48,4 @@ signal.signal(signal.SIGTERM, receive_signal)
 try:
     recon.start()
 except KeyboardInterrupt or Exception:
-    pass
+    logger.exception("Unknown error. Recon won't be stopped")
