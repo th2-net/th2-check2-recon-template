@@ -19,7 +19,8 @@ from th2_check2_recon.common import EventUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
 from th2_grpc_common.common_pb2 import Event
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class Rule(rule.Rule):

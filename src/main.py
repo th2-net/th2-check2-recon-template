@@ -14,15 +14,13 @@
 
 import logging.config
 import signal
-import sys
 
 from th2_check2_recon.recon import Recon
 from th2_check2_recon.services import MessageComparator
 from th2_common.schema.factory.common_factory import CommonFactory
 from th2_grpc_util.message_comparator_service import MessageComparatorService
 
-logging.config.fileConfig(fname=str(sys.argv[-1]), disable_existing_loggers=False)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 factory = CommonFactory()
 event_router = factory.event_batch_router
@@ -48,4 +46,4 @@ signal.signal(signal.SIGTERM, receive_signal)
 try:
     recon.start()
 except KeyboardInterrupt or Exception:
-    logger.exception("Unknown error. Recon won't be stopped")
+    logger.exception('Unknown error. Recon won\'t be stopped')
