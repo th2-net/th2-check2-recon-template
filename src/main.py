@@ -20,7 +20,9 @@ from th2_check2_recon.services import MessageComparator
 from th2_common.schema.factory.common_factory import CommonFactory
 from th2_grpc_util.message_comparator_service import MessageComparatorService
 
+
 logger = logging.getLogger(__name__)
+
 
 factory = CommonFactory()
 event_router = factory.event_batch_router
