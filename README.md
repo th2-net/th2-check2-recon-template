@@ -1,3 +1,7 @@
+# This version of check2-recon is used for demo ver-1.5.3-main_scenario:
+ **Schema example:** https://github.com/th2-net/th2-infra-schema-demo/tree/ver-1.5.3-main_scenario
+
+ **Recon configuration:** https://github.com/th2-net/th2-infra-schema-demo/blob/ver-1.5.3-main_scenario/boxes/recon.yml
 # th2-check2-recon
 This is one of the parts of the **th2-check2-recon** component, or *recon* in short. 
 *Recon* allows you to compare message streams with each other using specified scenarios called *Rule*. 
@@ -110,7 +114,7 @@ To install all the necessary dependencies, you need to install all the packages 
 The config for a *Recon* with two *rules* will look like this:
 ```buildoutcfg
 apiVersion: th2.exactpro.com/v1
-kind: Th2GenericBox
+kind: Th2Box
 metadata:
   name: recon
 spec:
@@ -124,31 +128,46 @@ spec:
     event_batch_send_interval: 1
     rules_package_path: rules
     rules:
-      - name: "rule_demo_1"
+      - name: "Match_Orders_between_fix_and_csv_file"
         enabled: true
-        match_timeout: 10
+        match_timeout: 300000
         match_timeout_offset_ns: 0
-        configuration: ""
-      - name: "demo_conn1_vs_demo_conn2"
+        configuration:
+          demo-csv: "NOS_CSV"
+          demo-conn1: "NOS_CONN"
+          demo-conn2: "NOS_CONN"
+      - name: "Match_ExecutionReports_between_fix_and_csv_file"
         enabled: true
-        match_timeout: 10
+        match_timeout: 300000
         match_timeout_offset_ns: 0
-        configuration: ""
-      - name: "FIX_vs_DC"
+        configuration:
+          demo-csv: "ER_CSV"
+          demo-conn1: "ER_CONN"
+          demo-conn2: "ER_CONN"
+      - name: "Match_trades_by_TrdMatchID"
         enabled: true
-        match_timeout: 10
+        match_timeout: 3000
         match_timeout_offset_ns: 0
-        configuration: ""
-      - name: "read_log_vs_conn"
+        configuration:
+          demo-conn1: "ER_FIX01"
+          demo-conn2: "ER_FIX02"
+      - name: "Match_Orders_between_the_system_logs_and_FIX"
         enabled: true
-        match_timeout: 10
+        match_timeout: 300000
         match_timeout_offset_ns: 0
-        configuration: ""
-      - name: "security_status_log_conn"
+        configuration:
+          demo-conn1: "NOS_CONN"
+          demo-conn2: "NOS_CONN"
+          demo-log: "NOS_LOG"
+      - name: "Match_ExecutionReports_with_dropcopy"
         enabled: true
-        match_timeout: 10
+        match_timeout: 3000
         match_timeout_offset_ns: 0
-        configuration: ""
+        configuration:
+          demo-conn1: "ER_FIX"
+          demo-conn2: "ER_FIX"
+          demo-dc1: "ER_DC"
+          demo-dc2: "ER_DC"
   pins:
     - name: incoming 
       connection-type: mq
@@ -170,13 +189,14 @@ metadata:
 spec:
   boxes-relation:
     router-grpc:
-      - name: recon-to-util
+      - name: recon-comon3-to-util
         from:
+          service-class: com.exactpro.th2.util.MessageComparator
           strategy: filter
           box: recon
           pin: to_util
         to:
-          service-class: com.exactpro.th2.util.grpc.MessageComparatorServiceService
+          service-class: com.exactpro.th2.util.grpc.MessageComparatorService
           strategy: robin
           box: util
           pin: server

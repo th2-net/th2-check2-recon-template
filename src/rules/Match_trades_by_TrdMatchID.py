@@ -1,4 +1,4 @@
-# Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+# Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,16 +19,30 @@ from th2_check2_recon.common import EventUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
 from th2_grpc_common.common_pb2 import Direction, Event
 
-logger = logging.getLogger()
+
+logger = logging.getLogger(__name__)
 
 
 class Rule(rule.Rule):
+    config = dict()
 
     def get_name(self) -> str:
-        return "demo-conn1 vs demo-conn2"
+        groups = set(self.config.values())
+        name = "Match trades rule: "
+        for group in groups:
+            aliases = list()
+            for alias in self.config:
+                if self.config[alias] == group:
+                    aliases.append(alias)
+            name += str(aliases) + " vs "
+        name = name[:-4]
+        return name
 
     def get_description(self) -> str:
-        return "Trader DEMO-CONN1 and trader DEMO-CONN2 both receive ExecutionReport with the same TrdMatchID"
+        return "Trader1 and trader2 both receive ExecutionReport with the same TrdMatchID"
+
+    def configure(self, configuration):
+        self.config = configuration
 
     def get_attributes(self) -> [list]:
         return [
@@ -36,21 +50,21 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'ER_FIX01': MessageGroupType.single,
-                'ER_FIX02': MessageGroupType.single}
+        desc = dict()
+        groups = set(self.config.values())
+        for group in groups:
+            desc[group] = MessageGroupType.single
+        return desc
 
-    def group(self, message: ReconMessage, attributes: tuple):
+    def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        if session_alias not in ['demo-conn1', 'demo-conn2'] or \
-                message_type not in ['ExecutionReport']:
+        if session_alias not in self.config.keys() or message_type not in ['ExecutionReport']:
             return
 
-        if message_type == 'ExecutionReport' and direction != Direction.FIRST:
-            return
-
-        if message_type == 'ExecutionReport' and message.proto_message.fields['ExecType'].simple_value != 'F':
+        if message_type == 'ExecutionReport' and (direction != Direction.FIRST
+                                                  or message.proto_message.fields['ExecType'].simple_value != 'F'):
             return
 
         if message_type == 'ExecutionReport' and \
@@ -58,17 +72,14 @@ class Rule(rule.Rule):
             logger.info(f"RULE '{self.get_name()}'. ER with empty TrdMatchID: {message.proto_message}.")
             return
 
-        if session_alias in ['demo-conn1', ]:
-            message.group_id = 'ER_FIX01'
-        elif session_alias in ['demo-conn2']:
-            message.group_id = 'ER_FIX02'
+        message.group_id = self.config[session_alias]
 
-    def hash(self, message: ReconMessage, attributes: tuple):
+    def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         trd_match_id = message.proto_message.fields['TrdMatchID'].simple_value
-        message.hash = hash(message.proto_message.fields['TrdMatchID'].simple_value)
+        message.hash = hash(trd_match_id)
         message.hash_info['TrdMatchID'] = trd_match_id
 
-    def check(self, messages: [ReconMessage]) -> Event:
+    def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
         ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'PartyID', 'OrderID', 'CumQty',
