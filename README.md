@@ -1,7 +1,7 @@
-# This version of check2-recon is used for demo ver-1.5.3-main_scenario:
- **Schema example:** https://github.com/th2-net/th2-infra-schema-demo/tree/ver-1.5.3-main_scenario
+# This version of check2-recon is used for demo ver-1.5.4-main_scenario:
+ **Schema example:** https://github.com/th2-net/th2-infra-schema-demo/tree/ver-1.5.4-main_scenario
 
- **Recon configuration:** https://github.com/th2-net/th2-infra-schema-demo/blob/ver-1.5.3-main_scenario/boxes/recon.yml
+ **Recon configuration:** https://github.com/th2-net/th2-infra-schema-demo/blob/ver-1.5.4-main_scenario/boxes/recon.yml
 # th2-check2-recon
 This is one of the parts of the **th2-check2-recon** component, or *recon* in short. 
 *Recon* allows you to compare message streams with each other using specified scenarios called *Rule*. 
