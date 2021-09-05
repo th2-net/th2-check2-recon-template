@@ -88,7 +88,7 @@ it will be determined which messages to delete and which to keep.
 # Recon configuration
 
 * **recon_name** - name report in GUI.
-* **cache_size** - maximum *message group* size.
+* **cache_size** - maximum *message group* size. When the *message group* is full, the new message replaces the oldest one. An appropriate event is sent about this.
 * **rules_package_path** - directory where *rules* are located.
 * **event_batch_max_size** - maximum number of events in one *EventBatch*.
 * **event_batch_send_interval** - how often to send *EventBatch* with events.
@@ -98,8 +98,8 @@ it will be determined which messages to delete and which to keep.
 
 + **name** - name of the file containing the rule.
 + **enabled** - should *rule* be used or not.
-+ **match_timeout** - time interval between compared messages in seconds.
-+ **match_timeout_offset_ns** - time interval between compared messages offset in nanoseconds.
++ **match_timeout** - time interval between compared messages in seconds. The current time is taken from the new message. For all messages that arrived earlier than (*actual_time* - *match_timeout*) and did not participate in the checks, the corresponding events will be created.
++ **match_timeout_offset_ns** - the addend for *match_timeout* * 1_000_000_000, if precision to nanoseconds is needed.
 
 # Installing
 To install all the necessary dependencies, you need to install all the packages from **requirements.txt**.
