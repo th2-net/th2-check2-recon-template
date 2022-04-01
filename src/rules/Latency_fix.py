@@ -22,7 +22,6 @@ from th2_grpc_common.common_pb2 import Event, EventStatus, Message
 
 logger = logging.getLogger(__name__)
 
-
 def latency_check(message_response: Message, message_request: Message):
     type1 = message_response.metadata.message_type
     type2 = message_request.metadata.message_type
@@ -33,7 +32,6 @@ def latency_check(message_response: Message, message_request: Message):
 class Group:
     REQUEST = 'Request'
     RESPONSE = 'Response'
-
 
 class Rule(rule.Rule):
 
@@ -58,7 +56,7 @@ class Rule(rule.Rule):
         else:
             self.LATENCY_LIMIT = 1000000
 
-    def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
+    def group(self, message: ReconMessage, attributes: tuple,  *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
 
         if message_type in ['NewOrderSingle', 'OrderCancelRequest', 'OrderCancelReplaceRequest']:
@@ -97,8 +95,10 @@ class Rule(rule.Rule):
             exec_type = recv_msg.fields['ExecType'].simple_value
             ord_status = recv_msg.fields['OrdStatus'].simple_value
 
-            logger.debug("RULE '%s': CHECK: messageER: [ClOrdID: %s, ExecType: %s, OrdStatus: %s]",
-                         self.get_name(), cl_order_id, exec_type, ord_status)
+            logger.info(f"RULE '{self.get_name()}': "
+                        f"CHECK: messageER: [ClOrdID:{cl_order_id}, "
+                        f"ExecType: {exec_type}, "
+                        f"OrdStatus: {ord_status}]")
 
             if send_msg_type == 'NewOrderSingle':
                 if exec_type == 'A' and ord_status == 'A':
@@ -116,7 +116,7 @@ class Rule(rule.Rule):
                     latency_type = 'PendingCancel'
                 elif (exec_type == '4' and ord_status == '4') or (exec_type == 'C' and ord_status == 'C'):
                     latency_type = 'Cancel'
-
+                
             elif send_msg_type == 'OrderCancelReplaceRequest':
                 if exec_type == 'E' and ord_status == 'E':
                     latency_type = 'PendingReplace'
@@ -139,10 +139,10 @@ class Rule(rule.Rule):
 
         else:
             logger.error(f"RULE '{self.get_name()}': "
-                         f"CHECK: Unknown message received. "
-                         f"Msg types: {message_types}\n"
-                         f"Recv msg: {recv_msg}\n"
-                         f"Send msg: {send_msg}")
+                        f"CHECK: Unknown message received. "
+                        f"Msg types: {message_types}\n"
+                        f"Recv msg: {recv_msg}\n"
+                        f"Send msg: {send_msg}")
 
         type1, type2, latency = latency_check(recv_msg, send_msg)
 
@@ -155,9 +155,10 @@ class Rule(rule.Rule):
         event_message = f'{type1} and {type2} ' \
                         f'Latency_type: {latency_type} ' \
                         f'Latency = {latency}'
-        logger.debug(f"RULE '%s': Thread: %s: EventMessage = %s. Latency was calculated for %s between %s and %s",
-                     self.get_name(), threading.current_thread().name, event_message, cl_order_id, message_types[0],
-                     message_types[1])
+        logger.info(
+            f"RULE '{self.get_name()}': Thread: {threading.current_thread().name}: "
+            f"EventMessage={event_message}. Latency was calculated for {cl_order_id} between {message_types[0]} "
+            f"and {message_types[1]}")
 
         if explanation is None:
             body = EventUtils.create_event_body(table)
