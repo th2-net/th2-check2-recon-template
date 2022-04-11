@@ -50,8 +50,8 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'MarketDataSnapshotFullRefresh': MessageGroupType.single,
-                'ExecutionReport': MessageGroupType.multi}
+        return {'MDR-FIX': MessageGroupType.single,
+                'ER-FIX': MessageGroupType.multi}
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
