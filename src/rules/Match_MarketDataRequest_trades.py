@@ -67,7 +67,10 @@ class Rule(rule.Rule):
                 message.proto_message.fields["ExecType"].simple_value == '' or \
                 message.proto_message.fields["ExecID"].simple_value == '':
             return
-        message.group_id = self.config[session_alias]
+        if message_type == 'ExecutionReport':
+            message.group_id = "ER-FIX"
+        else:
+            message.group_id = "MDR-FIX"
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
