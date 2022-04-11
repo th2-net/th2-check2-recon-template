@@ -17,7 +17,7 @@ import logging
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
-from th2_grpc_common.common_pb2 import Event
+from th2_grpc_common.common_pb2 import Direction, Event
 
 
 logger = logging.getLogger(__name__)
@@ -56,8 +56,16 @@ class Rule(rule.Rule):
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
+        direction = message.proto_message.metadata.id.direction
         if session_alias not in self.config.keys() or message_type not in ['ExecutionReport',
                                                                            'MarketDataSnapshotFullRefresh']:
+            return
+        if message_type == 'ExecutionReport' and direction != Direction.FIRST:
+            return
+        if message_type == 'ExecutionReport' and \
+                message.proto_message.fields["ClOrdID"].simple_value == '' or \
+                message.proto_message.fields["ExecType"].simple_value == '' or \
+                message.proto_message.fields["ExecID"].simple_value == '':
             return
         message.group_id = self.config[session_alias]
 
