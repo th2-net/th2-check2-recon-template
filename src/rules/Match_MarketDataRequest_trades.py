@@ -57,8 +57,9 @@ class Rule(rule.Rule):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        #session_alias not in self.config.keys() or
-        if message_type not in ['ExecutionReport', 'MarketDataSnapshotFullRefresh']:
+
+        if session_alias not in self.config.keys() or message_type not in ['ExecutionReport',
+                                                                           'MarketDataSnapshotFullRefresh']:
             return
         if message_type == 'ExecutionReport' and direction != Direction.FIRST:
             return
@@ -69,7 +70,7 @@ class Rule(rule.Rule):
             return
         if message_type == 'ExecutionReport':
             message.group_id = "ER-FIX"
-        else:
+        elif message_type == 'MarketDataSnapshotFullRefresh':
             message.group_id = "MDR-FIX"
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
