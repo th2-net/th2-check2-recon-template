@@ -63,10 +63,11 @@ class Rule(rule.Rule):
             return
         if message_type == 'ExecutionReport' and direction != Direction.FIRST:
             return
-        if message_type == 'ExecutionReport' and \
-                message.proto_message.fields["ClOrdID"].simple_value == '' or \
-                message.proto_message.fields["ExecType"].simple_value == '' or \
-                message.proto_message.fields["ExecID"].simple_value == '':
+        if message_type == 'ExecutionReport' and (
+                message.proto_message.fields["ClOrdID"].simple_value == '' or
+                message.proto_message.fields["ExecType"].simple_value == '' or
+                message.proto_message.fields["ExecType"].simple_value != 'F' or
+                message.proto_message.fields["ExecID"].simple_value == ''):
             return
         if message_type == 'ExecutionReport':
             message.group_id = "ER-FIX"
