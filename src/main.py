@@ -24,7 +24,7 @@ from th2_grpc_util.message_comparator_service import MessageComparatorService
 logger = logging.getLogger(__name__)
 
 
-factory = CommonFactory.create_from_kubernetes(namespace= 'th2-demomdr', box_name= 'recon', context_name= 'demo')
+factory = CommonFactory.create_from_kubernetes()
 event_router = factory.event_batch_router
 message_router = factory.message_parsed_batch_router
 custom_config = factory.create_custom_configuration()
