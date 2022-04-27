@@ -98,7 +98,7 @@ class Rule(rule.Rule):
                          'CsvRecordType', 'DisplayQty', 'SecondaryClOrdID', 'TransactTime', 'MDEntryBuyer',
                          'ExecType', 'Text', 'OrdStatus', 'CumQty', 'LeavesQty', 'ExecID', 'OrderID', 'MDEntrySeller',
                          'MDEntryID', 'MDEntryPx', 'MDEntrySize', 'MDEntryTime', 'MDEntryType', 'Text', 'MDReqID',
-                         'Symbol', 'TrdMatchID']
+                         'Symbol', 'TrdMatchID', 'NoMDEntries', 'Instrument']
         verification_component = self.message_comparator.compare_messages(messages, ignore_fields)
 
         info_for_name = dict()
