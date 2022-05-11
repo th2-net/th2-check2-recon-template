@@ -29,8 +29,9 @@ message_router = factory.message_parsed_batch_router
 custom_config = factory.create_custom_configuration()
 grpc_router = factory.grpc_router
 message_comparator = MessageComparator(grpc_router.get_service(MessageComparatorService))
+grpc_server = grpc_router.server
 
-recon = Recon(event_router, message_router, custom_config, message_comparator)
+recon = Recon(event_router, message_router, custom_config, message_comparator, grpc_server)
 
 
 def receive_signal(signum, frame):
