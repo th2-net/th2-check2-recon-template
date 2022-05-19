@@ -50,7 +50,7 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
-          build-args: ${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
+          build-args: DESCRIPTION_JSON=${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
           labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.pack_ver.outputs.value }}
