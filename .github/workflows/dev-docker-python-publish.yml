@@ -36,6 +36,13 @@ jobs:
           python3 -m th2_box_descriptor_generator.generate_service_descriptions
           cat service_proto_description.json
           echo "::set-output name=DESCRIPTION_JSON::$(cat service_proto_description.json)"
+      - name: Check output
+        run: |
+          echo ${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
+          echo ---
+          echo '${{ steps.proto_json.outputs.DESCRIPTION_JSON }'
+          echo ---
+          echo "${{ steps.proto_json.outputs.DESCRIPTION_JSON }}"
       - name: Build custom package version
         id: release_ver
         run: echo ::set-output name=value::"${{ steps.pack_ver.outputs.prop }}.dev${{ github.run_id }}"
