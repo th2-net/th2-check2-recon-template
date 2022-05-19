@@ -14,3 +14,4 @@
 
 
 th2-check2-recon==3.1.2.dev2320641958
+th2-box-descriptor-generator==0.0.1.dev2352986700
