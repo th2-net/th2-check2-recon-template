@@ -28,6 +28,14 @@ jobs:
         with:
           path: package_info.json
           prop_path: package_version
+      - name: Generate .proto description json
+        id: proto_json
+        run: |
+          pip install th2-box-descriptor-generator==0.0.1.dev2346263217
+          python3 -m th2_box_descriptor_generator.generate_service_descriptions
+          echo "::set-output name=DESCRIPTION_JSON::$(cat service_proto_description.json)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build custom package version
         id: release_ver
         run: echo ::set-output name=value::"${{ steps.pack_ver.outputs.prop }}.dev${{ github.run_id }}"
@@ -43,6 +51,7 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          build-args: ${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
           labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.pack_ver.outputs.value }}
