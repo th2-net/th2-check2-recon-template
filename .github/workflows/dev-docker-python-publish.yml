@@ -32,10 +32,10 @@ jobs:
         id: proto_json
         run: |
           pip install -r requirements.txt
-          pip install th2-box-descriptor-generator==0.0.1.dev2346263217
+          pip install th2-box-descriptor-generator==0.0.1.dev2352986700
           python3 -m th2_box_descriptor_generator.generate_service_descriptions
-          cat service_proto_description.json
-          echo "::set-output name=DESCRIPTION_JSON::'$(cat service_proto_description.json)'"
+          cat service_proto_description
+          echo "::set-output name=DESCRIPTION_JSON::$(cat service_proto_description)"
       - name: Check output
         run: |
           echo ${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
