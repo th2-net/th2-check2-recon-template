@@ -32,8 +32,9 @@ jobs:
         run: |
           pip install -r requirements.txt
           python3 -m th2_box_descriptor_generator.generate_service_descriptions
-          PROTO_DESCRIPTION="$(cat service_proto_description)"
-          echo "$PROTO_DESCRIPTION" >> $GITHUB_ENV
+          echo "PROTO_DESCRIPTION<<EOF" >> $GITHUB_ENV
+          cat service_proto_description >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
       - name: Check output
         run: |
           echo ${{ env.PROTO_DESCRIPTION }}
