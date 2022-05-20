@@ -142,8 +142,8 @@ class Rule(rule.Rule):
         else:
             body = EventUtils.create_event_body([table, explanation])
         attach_ids = [msg.proto_message.metadata.id for msg in messages]
-        status = EventStatus.SUCCESS if latency < self.LATENCY_LIMIT else EventStatus.FAILED
+
         return EventUtils.create_event(name=f"Match by ClOrdID: '{cl_order_id}'",
-                                       status=status,
+                                       status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,
                                        body=body)
