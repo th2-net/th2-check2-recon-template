@@ -35,13 +35,6 @@ jobs:
           echo "PROTO_DESCRIPTION<<EOF" >> $GITHUB_ENV
           cat service_proto_description >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-      - name: Check output
-        run: |
-          echo ${{ env.PROTO_DESCRIPTION }}
-          echo ---
-          echo '${{ env.PROTO_DESCRIPTION }}'
-          echo ---
-          echo "${{ env.PROTO_DESCRIPTION }}"
       - name: Build custom package version
         id: release_ver
         run: echo ::set-output name=value::"${{ steps.pack_ver.outputs.prop }}.dev${{ github.run_id }}"
