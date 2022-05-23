@@ -29,12 +29,11 @@ jobs:
           path: package_info.json
           prop_path: package_version
       - name: Generate .proto description json
+        id: proto_json
         run: |
           pip install -r requirements.txt
           python3 -m th2_box_descriptor_generator.generate_service_descriptions
-          echo "PROTO_DESCRIPTION<<EOF" >> $GITHUB_ENV
-          cat service_proto_description >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "::set-output name=DESCRIPTION_JSON::$(cat service_proto_description)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build custom package version
@@ -56,4 +55,4 @@ jobs:
           tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
           labels: |
             com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.pack_ver.outputs.value }}
-            protobuf-description-base64='${{ env.PROTO_DESCRIPTION }}'
+            protobuf-description-base64=${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
