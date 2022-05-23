@@ -28,10 +28,20 @@ jobs:
         with:
           path: package_info.json
           prop_path: package_version
+      - name: Generate .proto description json
+        id: proto_json
+        run: |
+          pip install -r requirements.txt
+          python3 -m th2_box_descriptor_generator.generate_service_descriptions
+          echo "::set-output name=DESCRIPTION_JSON::$(cat service_proto_description)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.prop }}
-          labels: com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.version.outputs.prop }}
+          labels: |
+            com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.version.outputs.prop }}
+            protobuf-description-base64=${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
