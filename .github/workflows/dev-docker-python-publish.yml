@@ -22,23 +22,18 @@ jobs:
           password: ${{ secrets.CR_PAT }}
       - run: echo "::set-output name=REPOSITORY_NAME::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
         id: meta
+      - name: Get branch name
+        id: branch
+        run: echo ::set-output name=branch_name::${GITHUB_REF#refs/*/}
       - name: Get package version
         id: pack_ver
         uses: notiz-dev/github-action-json-property@release
         with:
           path: package_info.json
           prop_path: package_version
-      - name: Generate .proto description json
-        id: proto_json
-        run: |
-          pip install -r requirements.txt
-          python3 -m th2_box_descriptor_generator.generate_service_descriptions
-          echo "::set-output name=DESCRIPTION_JSON::$(cat service_proto_description)"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build custom package version
         id: release_ver
-        run: echo ::set-output name=value::"${{ steps.pack_ver.outputs.prop }}.dev${{ github.run_id }}"
+        run: echo ::set-output name=value::"${{ steps.pack_ver.outputs.prop }}-${{ steps.branch.outputs.branch_name }}-${{ github.run_id }}"
       - name: Show package version
         run: echo ${{ steps.release_ver.outputs.value }}
       - name: Set version for current build in package_info.json
@@ -47,6 +42,14 @@ jobs:
           filename: './package_info.json'
           key: 'package_version'
           value: ${{ steps.release_ver.outputs.value }}
+      - name: Generate .proto description json
+        id: proto_json
+        run: |
+          pip install -r requirements.txt
+          python3 -m th2_box_descriptor_generator.generate_service_descriptions
+          echo "::set-output name=DESCRIPTION_JSON::$(cat service_proto_description)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
@@ -54,5 +57,5 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.release_ver.outputs.value }}
           labels: |
-            com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.pack_ver.outputs.value }}
+            com.exactpro.th2.${{ steps.meta.outputs.REPOSITORY_NAME }}=${{ steps.release_ver.outputs.value }}
             protobuf-description-base64=${{ steps.proto_json.outputs.DESCRIPTION_JSON }}
