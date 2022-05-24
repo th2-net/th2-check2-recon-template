@@ -66,7 +66,7 @@ class Rule(rule.Rule):
 
         message = messages[0]
         hash_field = message.proto_message.fields[self.hash_field].simple_value
-        latency = calculate_latency(message)
+        latency = calculate_latency(message.proto_message)
 
         table = TableComponent(['Name', 'Value'])
         table.add_row(f'{self.hash_field}', hash_field)
