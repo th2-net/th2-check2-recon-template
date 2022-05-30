@@ -24,9 +24,25 @@ logger = logging.getLogger(__name__)
 
 
 def calculate_latency(message: Message):
-    transact_time = datetime.strptime(message.fields['TransactTime'].simple_value, '%Y-%m-%dT%H:%M:%S.%f')
-    sending_time = datetime.strptime(message.fields['header'].message_value.fields['SendingTime'].simple_value,
-                                     '%Y-%m-%dT%H:%M:%S.%f')
+    transact_time = message.fields['TransactTime'].simple_value
+    sending_time = message.fields['header'].message_value.fields['SendingTime'].simple_value
+    
+    try:
+        transact_time = datetime.strptime(transact_time, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        try:
+            transact_time = datetime.strptime(transact_time, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            transact_time = datetime.strptime(transact_time, '%Y-%m-%dT%H:%M')
+
+    try:
+        sending_time = datetime.strptime(sending_time, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        try:
+            sending_time = datetime.strptime(sending_time, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            sending_time = datetime.strptime(sending_time, '%Y-%m-%dT%H:%M')
+
     latency = int((sending_time - transact_time).total_seconds() * 1000)
     return latency
 
