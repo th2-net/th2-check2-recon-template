@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils
@@ -43,7 +43,7 @@ def calculate_latency(message: Message):
         except ValueError:
             sending_time = datetime.strptime(sending_time, '%Y-%m-%dT%H:%M')
 
-    latency = int((sending_time - transact_time).total_seconds() * 1000)
+    latency = (sending_time - transact_time) / timedelta(microseconds=1)
     return latency
 
 
@@ -87,7 +87,7 @@ class Rule(rule.Rule):
         table = TableComponent(['Name', 'Value'])
         table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('MessageType', self.message_type)
-        table.add_row('Latency', latency)
+        table.add_row('Latency in us', latency)
         body = EventUtils.create_event_body(table)
 
         return EventUtils.create_event(name=f"Match by {self.hash_field}: '{hash_field}'",
