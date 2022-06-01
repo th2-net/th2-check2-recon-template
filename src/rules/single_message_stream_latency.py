@@ -20,13 +20,12 @@ from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
 from th2_grpc_common.common_pb2 import Event, EventStatus, Message
 
+
 logger = logging.getLogger(__name__)
 
 
-def calculate_latency(message: Message):
-    transact_time = message.fields['TransactTime'].simple_value
-    sending_time = message.fields['header'].message_value.fields['SendingTime'].simple_value
-    
+def calculate_latency(transact_time: str, sending_time: str):
+
     try:
         transact_time = datetime.strptime(transact_time, '%Y-%m-%dT%H:%M:%S.%f')
     except ValueError:
@@ -50,10 +49,11 @@ def calculate_latency(message: Message):
 class Rule(rule.Rule):
 
     def get_name(self) -> str:
-        return "SingleMessageLatencyRule"
+        return 'Single Message Stream Latency Rule'
 
     def get_description(self) -> str:
-        return "Rule for calculating latency in single message between SendingTime (52) and TransactTime (60) tags"
+        return 'Rule for calculating latency in single message stream ' \
+               'between SendingTime (52) and TransactTime (60) tags'
 
     def get_attributes(self) -> [list]:
         return [
@@ -82,15 +82,21 @@ class Rule(rule.Rule):
 
         message = messages[0]
         hash_field = message.proto_message.fields[self.hash_field].simple_value
-        latency = calculate_latency(message.proto_message)
+        timestamp = str(message.proto_message.metadata.timestamp.ToDatetime())
+        transact_time = message.fields['TransactTime'].simple_value
+        sending_time = message.fields['header'].message_value.fields['SendingTime'].simple_value
+        latency = calculate_latency(transact_time, sending_time)
 
         table = TableComponent(['Name', 'Value'])
-        table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('MessageType', self.message_type)
+        table.add_row(f'{self.hash_field}', hash_field)
+        table.add_row('Timestamp', timestamp)
+        table.add_row('TransactTime', transact_time)
+        table.add_row('SendingTime', sending_time)
         table.add_row('Latency in us', latency)
         body = EventUtils.create_event_body(table)
 
-        return EventUtils.create_event(name=f"Match by {self.hash_field}: '{hash_field}'",
+        return EventUtils.create_event(name=f'Latency for message with {self.hash_field} = {hash_field}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=[message.proto_message.metadata.id],
                                        body=body)
