@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import logging
-from typing import Optional
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Optional, Any
 
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils
@@ -24,13 +26,47 @@ from th2_grpc_common.common_pb2 import Event, EventStatus, Message
 logger = logging.getLogger(__name__)
 
 
-def latency_check(response_message: Message, request_message: Message):
-    return (MessageUtils.get_timestamp_ns(response_message) - MessageUtils.get_timestamp_ns(request_message)) / 1000
-
-
 class Group:
     REQUEST = 'Request'
     RESPONSE = 'Response'
+
+
+class LatencyCalculationMode(Enum):
+    TIMESTAMP = 'Timestamp'
+    SENDING_TIME = 'SendingTime'
+
+    @classmethod
+    def _missing_(cls, value: object) -> Any:
+        return LatencyCalculationMode.TIMESTAMP
+
+
+def latency_by_timestamp(response_message: Message, request_message: Message):
+    return (MessageUtils.get_timestamp_ns(response_message) - MessageUtils.get_timestamp_ns(request_message)) / 1000
+
+
+def latency_by_sending_time(response_message: Message, request_message: Message):
+
+    request_sending_time = request_message.fields['header'].message_value.fields['SendingTime'].simple_value
+    response_sending_time = response_message.fields['header'].message_value.fields['SendingTime'].simple_value
+
+    try:
+        request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        try:
+            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M')
+
+    try:
+        response_sending_time = datetime.strptime(response_sending_time, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        try:
+            response_sending_time = datetime.strptime(response_sending_time, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            response_sending_time = datetime.strptime(response_sending_time, '%Y-%m-%dT%H:%M')
+
+    latency = (response_sending_time - request_sending_time) / timedelta(microseconds=1)
+    return latency
 
 
 class Rule(rule.Rule):
@@ -52,15 +88,27 @@ class Rule(rule.Rule):
 
     def configure(self, configuration: dict):
         self.request_message_types = configuration.get('RequestMessageTypes', ['NewOrderSingle'])
+        self.request_message_session_aliases = configuration.get('RequestMessageSessionAliases', [])
+
         self.response_message_types = configuration.get('ResponseMessageTypes', ['ExecutionReport'])
+        self.response_message_session_aliases = configuration.get('ResponseMessageSessionAliases', [])
+
         self.hash_field = configuration.get('HashField', 'ClOrdID')
+        self.mode = LatencyCalculationMode(configuration.get('Mode', 'Timestamp'))
+
+        self.latency_info = configuration.get('LatencyInfo', 'Latency')
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
+        session_alias: str = message.proto_message.metadata.id.connection_id.session_alias
 
-        if message_type in self.request_message_types:
+        if message_type in self.request_message_types and \
+                (len(self.request_message_session_aliases) == 0 or
+                 session_alias in self.request_message_session_aliases):
             message.group_id = Group.REQUEST
-        elif message_type in self.response_message_types:
+        elif message_type in self.response_message_types and \
+                (len(self.response_message_session_aliases) == 0 or
+                 session_alias in self.response_message_session_aliases):
             message.group_id = Group.RESPONSE
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
@@ -124,7 +172,10 @@ class Rule(rule.Rule):
             elif request_message_type == 'OrderCancelRequest':
                 latency_type = 'CancelReject'
 
-        latency = latency_check(response_message, request_message)
+        if self.mode == LatencyCalculationMode.SENDING_TIME:
+            latency = latency_by_sending_time(response_message, request_message)
+        else:
+            latency = latency_by_timestamp(response_message, request_message)
 
         table = TableComponent(['Name', 'Value'])
         table.add_row('Request Message Type', request_message_type)
@@ -141,7 +192,8 @@ class Rule(rule.Rule):
 
         attach_ids = [msg.proto_message.metadata.id for msg in messages]
 
-        return EventUtils.create_event(name=f"Latency between messages with {self.hash_field}: '{hash_field}'",
+        return EventUtils.create_event(name=f'{self.latency_info} between messages with '
+                                            f'{self.hash_field} = {hash_field}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,
                                        body=body)

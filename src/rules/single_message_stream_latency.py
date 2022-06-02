@@ -64,13 +64,18 @@ class Rule(rule.Rule):
         return {'Message': MessageGroupType.single}
 
     def configure(self, configuration: dict):
-        self.message_type = configuration.get('MessageType', 'NewOrderSingle')
+        self.message_types = configuration.get('MessageTypes', ['NewOrderSingle'])
+        self.session_aliases = configuration.get('SessionAliases', [])
         self.hash_field = configuration.get('HashField', 'ClOrdID')
+
+        self.latency_info = configuration.get('LatencyInfo', 'Latency')
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
+        session_alias: str = message.proto_message.metadata.id.connection_id.session_alias
 
-        if message_type == self.message_type:
+        if message_type in self.message_types and \
+                (len(self.session_aliases) == 0 or session_alias in self.session_aliases):
             message.group_id = 'Message'
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
@@ -81,6 +86,7 @@ class Rule(rule.Rule):
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
 
         message = messages[0]
+        message_type = message.proto_message.metadata.message_type
         hash_field = message.proto_message.fields[self.hash_field].simple_value
         timestamp = str(message.proto_message.metadata.timestamp.ToDatetime())
         transact_time = message.fields['TransactTime'].simple_value
@@ -88,7 +94,7 @@ class Rule(rule.Rule):
         latency = calculate_latency(transact_time, sending_time)
 
         table = TableComponent(['Name', 'Value'])
-        table.add_row('MessageType', self.message_type)
+        table.add_row('MessageType', message_type)
         table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('Timestamp', timestamp)
         table.add_row('TransactTime', transact_time)
@@ -96,7 +102,7 @@ class Rule(rule.Rule):
         table.add_row('Latency in us', latency)
         body = EventUtils.create_event_body(table)
 
-        return EventUtils.create_event(name=f'Latency for message with {self.hash_field} = {hash_field}',
+        return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_field} = {hash_field}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=[message.proto_message.metadata.id],
                                        body=body)
