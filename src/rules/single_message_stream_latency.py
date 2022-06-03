@@ -86,11 +86,12 @@ class Rule(rule.Rule):
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
 
         message = messages[0]
-        message_type = message.proto_message.metadata.message_type
-        hash_field = message.proto_message.fields[self.hash_field].simple_value
-        timestamp = str(message.proto_message.metadata.timestamp.ToDatetime())
-        transact_time = message.fields['TransactTime'].simple_value
-        sending_time = message.fields['header'].message_value.fields['SendingTime'].simple_value
+        proto_message: Message = message.proto_message
+        message_type = proto_message.metadata.message_type
+        hash_field = proto_message.fields[self.hash_field].simple_value
+        timestamp = str(proto_message.metadata.timestamp.ToDatetime())
+        transact_time = proto_message.fields['TransactTime'].simple_value
+        sending_time = proto_message.fields['header'].message_value.fields['SendingTime'].simple_value
         latency = calculate_latency(transact_time, sending_time)
 
         table = TableComponent(['Name', 'Value'])
