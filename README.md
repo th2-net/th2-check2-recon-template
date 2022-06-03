@@ -93,6 +93,8 @@ it will be determined which messages to delete and which to keep.
 * **event_batch_max_size** - maximum number of events in one *EventBatch*.
 * **event_batch_send_interval** - how often to send *EventBatch* with events.
 * **rules** - list of *rule* configurations
+* **crawler_connection_configuration** - configuration for connecting crawler component
+* **configuration** - additional configuration (recon level) in free format
 
 # Rule configuration
 
@@ -100,6 +102,8 @@ it will be determined which messages to delete and which to keep.
 + **enabled** - should *rule* be used or not.
 + **match_timeout** - time interval between compared messages in seconds. The current time is taken from the new message. For all messages that arrived earlier than (*actual_time* - *match_timeout*) and did not participate in the checks, the corresponding events will be created.
 + **match_timeout_offset_ns** - the addend for *match_timeout* * 1_000_000_000, if precision to nanoseconds is needed.
++ **autoremove_timeout** - timeout for automatic cache clearing in seconds or in `Hours:Minutes` (time of the day) format
++ **configuration** - additional configuration (rule level) in free format
 
 # Installing
 To install all the necessary dependencies, you need to install all the packages from **requirements.txt**.
