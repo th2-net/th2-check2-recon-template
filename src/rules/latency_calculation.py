@@ -177,8 +177,11 @@ class Rule(rule.Rule):
         else:
             latency = latency_by_timestamp(response_message, request_message)
 
+        request_timestamp = str(request_message.metadata.timestamp.ToDatetime())
+
         table = TableComponent(['Name', 'Value'])
         table.add_row('Request Message Type', request_message_type)
+        table.add_row('Request Timestamp', request_timestamp)
         table.add_row('Response Message Type', response_message_type)
         table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('Latency type', latency_type)
