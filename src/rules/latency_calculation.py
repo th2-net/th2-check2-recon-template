@@ -34,6 +34,7 @@ class Group:
 class LatencyCalculationMode(Enum):
     TIMESTAMP = 'Timestamp'
     SENDING_TIME = 'SendingTime'
+    RESPONSE_TIME = 'ResponseTime'
 
     @classmethod
     def _missing_(cls, value: object) -> Any:
@@ -67,6 +68,24 @@ def latency_by_sending_time(response_message: Message, request_message: Message)
 
     latency = (response_sending_time - request_sending_time) / timedelta(microseconds=1)
     return latency
+
+
+def latency_response_time(response_message: Message, request_message: Message):
+
+    response_timestamp = MessageUtils.get_timestamp_ns(response_message) / 1000
+
+    request_sending_time = request_message.fields['header'].message_value.fields['SendingTime'].simple_value
+    try:
+        request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        try:
+            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M')
+
+    request_sending_time = request_sending_time.timestamp() * 1_000_000
+
+    return response_timestamp - request_sending_time
 
 
 class Rule(rule.Rule):
@@ -174,18 +193,20 @@ class Rule(rule.Rule):
 
         if self.mode == LatencyCalculationMode.SENDING_TIME:
             latency = latency_by_sending_time(response_message, request_message)
+        elif self.mode == LatencyCalculationMode.RESPONSE_TIME:
+            latency = latency_response_time(response_message, request_message)
         else:
             latency = latency_by_timestamp(response_message, request_message)
 
         request_timestamp = str(request_message.metadata.timestamp.ToDatetime())
 
         table = TableComponent(['Name', 'Value'])
-        table.add_row('Request Message Type', request_message_type)
-        table.add_row('Request Timestamp', request_timestamp)
+        table.add_row('Message Type', request_message_type)
+        table.add_row('Timestamp', request_timestamp)
         table.add_row('Response Message Type', response_message_type)
         table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('Latency type', latency_type)
-        table.add_row('Latency', latency)
+        table.add_row('Latency in us', latency)
 
         logger.debug('Rule: %s. Latency with type %s between %s and %s message with %s = %s is equal to %s',
                      self.get_name(), latency_type, request_message_type, response_message_type,
