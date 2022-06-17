@@ -150,10 +150,17 @@ class Rule(rule.Rule):
         for message in messages:
             proto_message = message.proto_message
             message_type = proto_message.metadata.message_type
-            if message_type in self.request_message_types:
+            session_alias = proto_message.metadata.id.connection_id.session_alias
+
+            if message_type in self.request_message_types and \
+                    (len(self.request_message_session_aliases) == 0 or
+                     session_alias in self.request_message_session_aliases):
                 request_message = proto_message
                 request_message_type = message_type
-            elif message_type in self.response_message_types:
+
+            elif message_type in self.response_message_types and \
+                    (len(self.response_message_session_aliases) == 0 or
+                     session_alias in self.response_message_session_aliases):
                 response_message = proto_message
                 response_message_type = message_type
 
@@ -203,7 +210,7 @@ class Rule(rule.Rule):
         table = TableComponent(['Name', 'Value'])
         table.add_row('Message Type', request_message_type)
         table.add_row('Timestamp', request_timestamp)
-        table.add_row('Response Message Type', response_message_type)
+        # table.add_row('Response Message Type', response_message_type)
         table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('Latency type', latency_type)
         table.add_row('Latency in us', latency)
