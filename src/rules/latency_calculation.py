@@ -118,8 +118,8 @@ class Rule(rule.Rule):
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        message_type: str = message.proto_message.metadata.message_type
-        session_alias: str = message.proto_message.metadata.id.connection_id.session_alias
+        message_type: str = message.proto_message.get('metadata', {}).get('message_type', '')
+        session_alias: str = message.proto_message.get('metadata', {}).get('id', {}).get('connection_id', {}).get('session_alias', '')
 
         if message_type in self.request_message_types and \
                 (len(self.request_message_session_aliases) == 0 or
@@ -131,7 +131,7 @@ class Rule(rule.Rule):
             message.group_id = Group.RESPONSE
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        hash_field = message.proto_message.fields[self.hash_field].simple_value
+        hash_field = message.proto_message.get('fields', {})[self.hash_field].simple_value
         message.hash = hash(hash_field)
         message.hash_info[self.hash_field] = hash_field
 
