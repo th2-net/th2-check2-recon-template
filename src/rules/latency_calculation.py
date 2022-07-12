@@ -131,7 +131,7 @@ class Rule(rule.Rule):
         message.group_id = Group.RESPONSE
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        hash_field = message.proto_message.get('fields', {})[self.hash_field].simple_value
+        hash_field = message.proto_message[self.hash_field]
         message.hash = hash(hash_field)
         message.hash_info[self.hash_field] = hash_field
 
