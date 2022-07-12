@@ -119,7 +119,7 @@ class Rule(rule.Rule):
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message.get('metadata', {}).get('message_type', '')
-        session_alias: str = message.proto_message.get('metadata', {}).get('id', {}).get('connection_id', {}).get('session_alias', '')
+        session_alias: str = message.proto_message.get('metadata', {}).get('id', {}).get('connection_id', {}).get('session_alias', 'demo-conn1')
 
         if message_type in self.request_message_types and \
                 (len(self.request_message_session_aliases) == 0 or
