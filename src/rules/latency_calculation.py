@@ -15,7 +15,6 @@
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
-import json
 from typing import Optional, Any
 
 from th2_check2_recon import rule
@@ -119,20 +118,20 @@ class Rule(rule.Rule):
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-#         message_type: str = message.proto_message.get('metadata', {}).get('message_type', '')
-#         session_alias: str = message.proto_message.get('metadata', {}).get('id', {}).get('connection_id', {}).get('session_alias', 'demo-conn1')
+        message_type: str = message.proto_message.metadata.message_type
+        session_alias: str = message.proto_message.metadata.id.connection_id.session_alias
 
-#         if message_type in self.request_message_types and \
-#                 (len(self.request_message_session_aliases) == 0 or
-#                  session_alias in self.request_message_session_aliases):
-#             message.group_id = Group.REQUEST
-#         elif message_type in self.response_message_types and \
-#                 (len(self.response_message_session_aliases) == 0 or
-#                  session_alias in self.response_message_session_aliases):
-        message.group_id = Group.RESPONSE
-
+        if message_type in self.request_message_types and \
+                (len(self.request_message_session_aliases) == 0 or
+                 session_alias in self.request_message_session_aliases):
+            message.group_id = Group.REQUEST
+        elif message_type in self.response_message_types and \
+                (len(self.response_message_session_aliases) == 0 or
+                 session_alias in self.response_message_session_aliases):
+            message.group_id = Group.RESPONSE
+            
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        hash_field = json.loads(message.proto_message)[self.hash_field]
+        hash_field = message.proto_message.fields[self.hash_field].simple_value
         message.hash = hash(hash_field)
         message.hash_info[self.hash_field] = hash_field
 
