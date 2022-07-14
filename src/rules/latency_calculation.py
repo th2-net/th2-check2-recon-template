@@ -15,6 +15,7 @@
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
+import json
 from typing import Optional, Any
 
 from th2_check2_recon import rule
@@ -131,7 +132,7 @@ class Rule(rule.Rule):
         message.group_id = Group.RESPONSE
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        hash_field = message.proto_message[self.hash_field]
+        hash_field = json.loads(message.proto_message)[self.hash_field]
         message.hash = hash(hash_field)
         message.hash_info[self.hash_field] = hash_field
 
