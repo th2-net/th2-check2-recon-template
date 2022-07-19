@@ -117,8 +117,8 @@ class Rule(rule.Rule):
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        message_type: str = message.proto_message['message_type']
-        session_alias: str = message.proto_message['session_alias']
+        message_type: str = message.proto_message['metadata']['message_type']
+        session_alias: str = message.proto_message['metadata']['session_alias']
 
         if message_type in self.request_message_types and \
                 (len(self.request_message_session_aliases) == 0 or
@@ -146,8 +146,8 @@ class Rule(rule.Rule):
         message: ReconMessage
         for message in messages:
             proto_message = message.proto_message
-            message_type: str = message.proto_message['message_type']
-            session_alias: str = message.proto_message['session_alias']
+            message_type: str = message.proto_message['metadata']['message_type']
+            session_alias: str = message.proto_message['metadata']['session_alias']
 
             if message_type in self.request_message_types and \
                     (len(self.request_message_session_aliases) == 0 or
@@ -168,7 +168,7 @@ class Rule(rule.Rule):
         else:
             latency = latency_by_timestamp(response_message, request_message)
 
-        request_timestamp = str(request_message['timestamp'].ToDatetime())
+        request_timestamp = str(request_message['metadata']['timestamp'].ToDatetime())
 
         table = TableComponent(['Name', 'Value'])
         table.add_row('Message Type', request_message_type)
@@ -183,9 +183,9 @@ class Rule(rule.Rule):
 
         body = EventUtils.create_event_body(table)
 
-        attach_ids = [MessageID(connection_id=ConnectionID(session_alias=msg['session_alias']),
-                                direction=msg['direction'],
-                                sequence=msg['sequence'])
+        attach_ids = [MessageID(connection_id=ConnectionID(session_alias=msg['metadata']['session_alias']),
+                                direction=msg['metadata']['direction'],
+                                sequence=msg['metadata']['sequence'])
                       for msg in messages]
 
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
