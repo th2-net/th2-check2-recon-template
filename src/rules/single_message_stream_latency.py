@@ -14,12 +14,12 @@
 
 import logging
 from datetime import datetime, timedelta
+from typing import Dict, Any
 
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
-from th2_grpc_common.common_pb2 import Event, EventStatus, Message
-
+from th2_grpc_common.common_pb2 import Event, EventStatus, Message, MessageID, ConnectionID
 
 logger = logging.getLogger(__name__)
 
@@ -71,27 +71,26 @@ class Rule(rule.Rule):
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        message_type: str = message.proto_message.metadata.message_type
-        session_alias: str = message.proto_message.metadata.id.connection_id.session_alias
+        message_type: str = message.proto_message['message_type']
+        session_alias: str = message.proto_message['session_alias']
 
         if message_type in self.message_types and \
                 (len(self.session_aliases) == 0 or session_alias in self.session_aliases):
             message.group_id = 'Message'
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        hash_field = message.proto_message.fields[self.hash_field].simple_value
+        hash_field = message.proto_message['fields'][self.hash_field]
         message.hash = hash(hash_field)
         message.hash_info[self.hash_field] = hash_field
 
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
-
         message = messages[0]
-        proto_message: Message = message.proto_message
-        message_type = proto_message.metadata.message_type
-        hash_field = proto_message.fields[self.hash_field].simple_value
-        timestamp = str(proto_message.metadata.timestamp.ToDatetime())
-        transact_time = proto_message.fields['TransactTime'].simple_value
-        sending_time = proto_message.fields['header'].message_value.fields['SendingTime'].simple_value
+        proto_message: Dict[str, Any] = message.proto_message
+        message_type = proto_message['message_type']
+        hash_field = proto_message['fields'][self.hash_field]
+        timestamp = str(proto_message['timestamp'].ToDatetime())
+        transact_time = proto_message['fields']['TransactTime']
+        sending_time = proto_message['fields']['header']['SendingTime']
         latency = calculate_latency(transact_time, sending_time)
 
         table = TableComponent(['Name', 'Value'])
@@ -105,5 +104,8 @@ class Rule(rule.Rule):
 
         return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_field} = {hash_field}',
                                        status=EventStatus.SUCCESS,
-                                       attached_message_ids=[message.proto_message.metadata.id],
+                                       attached_message_ids=[
+                                           MessageID(connection_id=ConnectionID(session_alias=message['session_alias']),
+                                                     direction=message['direction'],
+                                                     sequence=message['sequence'])],
                                        body=body)
