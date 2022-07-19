@@ -106,7 +106,7 @@ class Rule(rule.Rule):
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=[
                                            MessageID(connection_id=ConnectionID(session_alias=
-                                                                                message['metadata']['session_alias']),
-                                                     direction=message['metadata']['direction'],
-                                                     sequence=message['metadata']['sequence'])],
+                                                                                proto_message['metadata']['session_alias']),
+                                                     direction=proto_message['metadata']['direction'],
+                                                     sequence=proto_message['metadata']['sequence'])],
                                        body=body)

@@ -183,9 +183,9 @@ class Rule(rule.Rule):
 
         body = EventUtils.create_event_body(table)
 
-        attach_ids = [MessageID(connection_id=ConnectionID(session_alias=msg['metadata']['session_alias']),
-                                direction=msg['metadata']['direction'],
-                                sequence=msg['metadata']['sequence'])
+        attach_ids = [MessageID(connection_id=ConnectionID(session_alias=msg.proto_message['metadata']['session_alias']),
+                                direction=msg.proto_message['metadata']['direction'],
+                                sequence=msg.proto_message['metadata']['sequence'])
                       for msg in messages]
 
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
