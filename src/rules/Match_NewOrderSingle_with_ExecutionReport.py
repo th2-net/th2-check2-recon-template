@@ -30,7 +30,7 @@ class Rule(rule.Rule):
         return name
 
     def get_description(self) -> str:
-        return "Match NewOrderSingle with ExecutionReport(ExecType=0) for aliases " + self.config
+        return "Match NewOrderSingle with ExecutionReport(ExecType=0) for aliases " + str(self.config)
 
     def configure(self, configuration):
         self.config = configuration
