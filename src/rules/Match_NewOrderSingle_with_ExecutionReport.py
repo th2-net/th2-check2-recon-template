@@ -67,7 +67,7 @@ class Rule(rule.Rule):
 
         ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'PartyID', 'OrderID', 'CumQty',
                          'ExecID', 'LeavesQty', 'MsgSeqNum', 'Text',
-                         'OrdStatus']
+                         'OrdStatus', 'ExecType', 'TransactTime']
         verification_component = self.message_comparator.compare_messages(messages, ignore_fields)
 
         info_for_name = dict()
