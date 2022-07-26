@@ -65,9 +65,9 @@ class Rule(rule.Rule):
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
-        ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'PartyID', 'OrderID', 'CumQty',
+        ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'SenderCompID', 'OrderID', 'CumQty',
                          'ExecID', 'LeavesQty', 'MsgSeqNum', 'Text',
-                         'OrdStatus', 'ExecType', 'TransactTime']
+                         'OrdStatus', 'ExecType', 'TransactTime','MsgType']
         verification_component = self.message_comparator.compare_messages(messages, ignore_fields)
 
         info_for_name = dict()
