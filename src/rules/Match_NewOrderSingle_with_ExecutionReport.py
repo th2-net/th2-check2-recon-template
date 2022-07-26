@@ -50,7 +50,7 @@ class Rule(rule.Rule):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        if session_alias not in self.config.keys() or message_type not in ['ExecutionReport', 'NewOrderSingle']:
+        if session_alias not in self.config or message_type not in ['ExecutionReport', 'NewOrderSingle']:
             return
         if message_type == 'ExecutionReport' and (direction != Direction.FIRST
                                                   or message.proto_message.fields['ExecType'].simple_value != '0'):
