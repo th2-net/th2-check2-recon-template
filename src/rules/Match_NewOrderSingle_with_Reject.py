@@ -28,7 +28,7 @@ class Rule(rule.Rule):
 
     def get_name(self) -> str:
         groups = set(self.config.values())
-        name = "FIX vs Dropcopy: "
+        name = "Match trades rule: "
         for group in groups:
             aliases = list()
             for alias in self.config:
@@ -39,15 +39,15 @@ class Rule(rule.Rule):
         return name
 
     def get_description(self) -> str:
-        return "ExecutionReports received by the traders from FIX conn and from Drop Copy conn are the same."
+        return "Trader1 and trader2 both receive ExecutionReport with the same TrdMatchID"
+
+    def configure(self, configuration):
+        self.config = configuration
 
     def get_attributes(self) -> [list]:
         return [
             ['parsed', 'subscribe']
         ]
-
-    def configure(self, configuration):
-        self.config = configuration
 
     def description_of_groups(self) -> dict:
         desc = dict()
@@ -60,32 +60,22 @@ class Rule(rule.Rule):
         message_type: str = message.proto_message.metadata.message_type
         session_alias = message.proto_message.metadata.id.connection_id.session_alias
         direction = message.proto_message.metadata.id.direction
-        if session_alias not in self.config.keys() or message_type not in ['ExecutionReport']:
-            return
-        if message_type == 'ExecutionReport' and direction != Direction.FIRST:
-            return
-        if message.proto_message.fields["ClOrdID"].simple_value == '' or \
-                message.proto_message.fields["ExecType"].simple_value == '' or \
-                message.proto_message.fields["ExecID"].simple_value == '':
-            return
-        message.group_id = self.config[session_alias]
+        if session_alias in self.config.keys() and message_type in ['Reject', 'ExecutionReport']:
+            message.group_id = self.config[message_type]
+
+
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        exec_type = message.proto_message.fields['ExecType'].simple_value
-        cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
-        exec_id = message.proto_message.fields['ExecID'].simple_value
-        val = ''
-        for field_name in ['ClOrdID', 'ExecType', 'ExecID']:
-            val += message.proto_message.fields[field_name].simple_value
-        message.hash = hash(val)
-        message.hash_info['ClOrdID'] = cl_ord_id
-        message.hash_info['ExecType'] = exec_type
-        message.hash_info['ExecID'] = exec_id
+        trd_match_id = message.proto_message.fields['TrdMatchID'].simple_value
+        message.hash = hash(trd_match_id)
+        message.hash_info['TrdMatchID'] = trd_match_id
 
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         logger.info(f"RULE '{self.get_name()}': CHECK: input_messages: {messages}")
 
-        ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'MsgSeqNum']
+        ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'PartyID', 'OrderID', 'CumQty',
+                         'OrderQty', 'ExecID', 'LeavesQty', 'MsgSeqNum', 'Price', 'TimeInForce', 'Side', 'Text',
+                         'OrdStatus', 'ClOrdID']
         verification_component = self.message_comparator.compare_messages(messages, ignore_fields)
 
         info_for_name = dict()
@@ -94,6 +84,7 @@ class Rule(rule.Rule):
 
         body = EventUtils.create_event_body(verification_component)
         attach_ids = [msg.proto_message.metadata.id for msg in messages]
+
         return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}'",
                                        status=verification_component.status,
                                        attached_message_ids=attach_ids,
