@@ -26,7 +26,7 @@ class Rule(rule.Rule):
     config = list()
 
     def get_name(self) -> str:
-        name = "Match orders with responses(ER) " + self.config
+        name = "Match orders with responses(ER) " + str(self.config)
         return name
 
     def get_description(self) -> str:
