@@ -20,7 +20,6 @@ from th2_check2_recon.services import MessageComparator
 from th2_common.schema.factory.common_factory import CommonFactory
 from th2_grpc_util.message_comparator_service import MessageComparatorService
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +29,7 @@ message_router = factory.message_parsed_batch_router
 custom_config = factory.create_custom_configuration()
 grpc_router = factory.grpc_router
 message_comparator = MessageComparator(grpc_router.get_service(MessageComparatorService))
-grpc_server = grpc_router.start_server()
+grpc_server = grpc_router.server
 
 recon = Recon(event_router, message_router, custom_config, message_comparator, grpc_server)
 
