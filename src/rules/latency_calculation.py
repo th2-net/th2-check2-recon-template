@@ -206,7 +206,7 @@ class Rule(rule.Rule):
         else:
             latency = latency_by_timestamp(response_message, request_message)
 
-        request_timestamp = str(request_message['metadata']['timestamp'].ToDatetime())
+        request_timestamp = str(request_message['metadata']['timestamp'])
         request_hash_field = request_message['fields'][self.request_hash_field]
         response_hash_field = response_message['fields'][self.response_hash_field]
 
