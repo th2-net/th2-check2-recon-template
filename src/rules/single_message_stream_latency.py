@@ -88,7 +88,7 @@ class Rule(rule.Rule):
         proto_message: Dict[str, Any] = message.proto_message
         message_type = proto_message['metadata']['message_type']
         hash_field = proto_message['fields'][self.hash_field]
-        timestamp = str(proto_message['metadata']['timestamp'].ToDatetime())
+        timestamp = str(proto_message['metadata']['timestamp'])
         transact_time = proto_message['fields']['TransactTime']
         sending_time = proto_message['fields']['header']['SendingTime']
         latency = calculate_latency(transact_time, sending_time)
