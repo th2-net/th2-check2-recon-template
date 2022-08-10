@@ -210,10 +210,14 @@ class Rule(rule.Rule):
         request_hash_field = request_message['fields'][self.request_hash_field]
         response_hash_field = response_message['fields'][self.response_hash_field]
 
+        response_exec_type = response_message['fields'].get('ExecType')
+
         table = TableComponent(['Name', 'Value'])
         table.add_row('Message Type', request_message_type)
         table.add_row('Timestamp', request_timestamp)
         table.add_row(f'{self.request_hash_field}', request_hash_field)
+        if response_exec_type is not None:
+            table.add_row('ExecType', response_exec_type)
         table.add_row('Latency in us', latency)
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
