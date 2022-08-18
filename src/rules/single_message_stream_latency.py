@@ -14,6 +14,7 @@
 
 import logging
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Dict, Any
 
 from th2_check2_recon import rule
@@ -24,25 +25,34 @@ from th2_grpc_common.common_pb2 import Event, EventStatus, MessageID, Connection
 logger = logging.getLogger(__name__)
 
 
-def calculate_latency(transact_time: str, sending_time: str):
+class LatencyCalculationMode(Enum):
+    SENDING_TRANSACT = 'SendingTransact'
+    CUSTOM = 'Custom'
+
+    @classmethod
+    def _missing_(cls, value: object) -> Any:
+        return LatencyCalculationMode.SENDING_TRANSACT
+
+
+def calculate_latency(time1: str, time2: str):
 
     try:
-        transact_time = datetime.strptime(transact_time, '%Y-%m-%dT%H:%M:%S.%f')
+        time1 = datetime.strptime(time1, '%Y-%m-%dT%H:%M:%S.%f')
     except ValueError:
         try:
-            transact_time = datetime.strptime(transact_time, '%Y-%m-%dT%H:%M:%S')
+            time1 = datetime.strptime(time1, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
-            transact_time = datetime.strptime(transact_time, '%Y-%m-%dT%H:%M')
+            time1 = datetime.strptime(time1, '%Y-%m-%dT%H:%M')
 
     try:
-        sending_time = datetime.strptime(sending_time, '%Y-%m-%dT%H:%M:%S.%f')
+        time2 = datetime.strptime(time2, '%Y-%m-%dT%H:%M:%S.%f')
     except ValueError:
         try:
-            sending_time = datetime.strptime(sending_time, '%Y-%m-%dT%H:%M:%S')
+            time2 = datetime.strptime(time2, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
-            sending_time = datetime.strptime(sending_time, '%Y-%m-%dT%H:%M')
+            time2 = datetime.strptime(time2, '%Y-%m-%dT%H:%M')
 
-    latency = (sending_time - transact_time) / timedelta(microseconds=1)
+    latency = (time2 - time1) / timedelta(microseconds=1)
     return latency
 
 
@@ -67,6 +77,9 @@ class Rule(rule.Rule):
         self.message_types = configuration.get('MessageTypes', ['NewOrderSingle'])
         self.session_aliases = configuration.get('SessionAliases', [])
         self.hash_field = configuration.get('HashField', 'ClOrdID')
+        self.time1 = configuration.get('Time1', 'TransactTime')
+        self.time2 = configuration.get('Time2', 'TransactTime')
+        self.mode = LatencyCalculationMode(configuration.get('Mode', 'SendingTransact'))
 
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
 
@@ -89,16 +102,24 @@ class Rule(rule.Rule):
         message_type = proto_message['metadata']['message_type']
         hash_field = proto_message['fields'][self.hash_field]
         timestamp = str(proto_message['metadata']['timestamp'])
-        transact_time = proto_message['fields']['TransactTime']
-        sending_time = proto_message['fields']['header']['SendingTime']
-        latency = calculate_latency(transact_time, sending_time)
 
         table = TableComponent(['Name', 'Value'])
         table.add_row('MessageType', message_type)
         table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('Timestamp', timestamp)
-        table.add_row('TransactTime', transact_time)
-        table.add_row('SendingTime', sending_time)
+
+        if self.mode == LatencyCalculationMode.CUSTOM:
+            time1 = proto_message['fields'][self.time1]
+            time2 = proto_message['field'][self.time2]
+            table.add_row(self.time1, time1)
+            table.add_row(self.time2, time2)
+        else:
+            time1 = proto_message['fields']['TransactTime']
+            time2 = proto_message['fields']['header']['SendingTime']
+            table.add_row('TransactTime', time1)
+            table.add_row('SendingTime', time2)
+
+        latency = calculate_latency(time1, time2)
         table.add_row('Latency in us', latency)
         body = EventUtils.create_event_body(table)
 
