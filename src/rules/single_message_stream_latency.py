@@ -110,7 +110,7 @@ class Rule(rule.Rule):
 
         if self.mode == LatencyCalculationMode.CUSTOM:
             time1 = proto_message['fields'][self.time1]
-            time2 = proto_message['field'][self.time2]
+            time2 = proto_message['fields'][self.time2]
             table.add_row(self.time1, time1)
             table.add_row(self.time2, time2)
         else:
