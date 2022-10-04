@@ -82,6 +82,7 @@ class Rule(rule.Rule):
         self.mode = LatencyCalculationMode(configuration.get('Mode', 'SendingTransact'))
 
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
+        self.included_properties = configuration.get('Properties', [])
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message['metadata']['message_type']
@@ -123,11 +124,12 @@ class Rule(rule.Rule):
         table.add_row('Latency in us', latency)
         body = EventUtils.create_event_body(table)
 
-        return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_field} = {hash_field}',
+        attach_ids = [MessageID(connection_id=ConnectionID(session_alias=proto_message['metadata']['session_alias']),
+                                direction=proto_message['metadata']['direction'],
+                                sequence=proto_message['metadata']['sequence'])]
+
+        return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_field} = {hash_field} '
+                                            f'{", ".join(proto_message["metadata"]["properties"][key] for key in self.included_properties)}',
                                        status=EventStatus.SUCCESS,
-                                       attached_message_ids=[
-                                           MessageID(connection_id=ConnectionID(session_alias=
-                                                                                proto_message['metadata']['session_alias']),
-                                                     direction=proto_message['metadata']['direction'],
-                                                     sequence=proto_message['metadata']['sequence'])],
+                                       attached_message_ids=attach_ids,
                                        body=body)

@@ -119,6 +119,7 @@ class Rule(rule.Rule):
         self.mode = LatencyCalculationMode(configuration.get('Mode', 'Timestamp'))
 
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
+        self.included_properties = configuration.get('Properties', [])
 
     def determine_message(self, message: ReconMessage):
         message_type: str = message.proto_message['metadata']['message_type']
@@ -197,27 +198,35 @@ class Rule(rule.Rule):
                 response_message = proto_message
                 response_message_type = message_type
 
+        request_timestamp = str(request_message['metadata']['timestamp'])
+        request_hash_field = request_message['fields'][self.request_hash_field]
+        response_hash_field = response_message['fields'][self.response_hash_field]
+
+        response_exec_type = response_message['fields'].get('ExecType')
+        response_ord_status = response_message['fields'].get('OrdStatus')
+
+        table = TableComponent(['Name', 'Value'])
+        table.add_row('Message Type', request_message_type)
+        table.add_row('Timestamp', request_timestamp)
+        table.add_row(f'{self.request_hash_field}', request_hash_field)
+
+        if response_exec_type is not None:
+            table.add_row('ExecType', response_exec_type)
+
+        if response_ord_status is not None:
+            table.add_row('OrdStatus', response_ord_status)
+
         if self.mode == LatencyCalculationMode.SENDING_TIME:
             latency = latency_by_sending_time(response_message, request_message)
         elif self.mode == LatencyCalculationMode.RESPONSE_TIME:
             latency = latency_response_time(response_message, request_message)
         elif self.mode == LatencyCalculationMode.CUSTOM:
             latency = self.latency_custom(response_message, request_message)
+            table.add_row(f'{self.request_time}', request_message['fields'][self.request_time])
+            table.add_row(f'{self.response_time}', response_message['fields'][self.response_time])
         else:
             latency = latency_by_timestamp(response_message, request_message)
 
-        request_timestamp = str(request_message['metadata']['timestamp'])
-        request_hash_field = request_message['fields'][self.request_hash_field]
-        response_hash_field = response_message['fields'][self.response_hash_field]
-
-        response_exec_type = response_message['fields'].get('ExecType')
-
-        table = TableComponent(['Name', 'Value'])
-        table.add_row('Message Type', request_message_type)
-        table.add_row('Timestamp', request_timestamp)
-        table.add_row(f'{self.request_hash_field}', request_hash_field)
-        if response_exec_type is not None:
-            table.add_row('ExecType', response_exec_type)
         table.add_row('Latency in us', latency)
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
@@ -234,8 +243,9 @@ class Rule(rule.Rule):
                       for msg in messages]
 
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
-                                            f'{self.request_hash_field} = {request_hash_field} and'
-                                            f'{self.response_hash_field} = {response_hash_field}',
+                                            f'{self.request_hash_field} = {request_hash_field} and '
+                                            f'{self.response_hash_field} = {response_hash_field} '
+                                            f'{", ".join(request_message["metadata"]["properties"][key] for key in self.included_properties)}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,
                                        body=body)
