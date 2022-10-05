@@ -242,10 +242,13 @@ class Rule(rule.Rule):
                                 sequence=msg.proto_message['metadata']['sequence'])
                       for msg in messages]
 
+        properties = ', '.join(request_message['metadata']['properties'][key]
+                               for key in self.included_properties
+                               if key in request_message['metadata']['properties'])
+
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
                                             f'{self.request_hash_field} = {request_hash_field} and '
-                                            f'{self.response_hash_field} = {response_hash_field} '
-                                            f'{", ".join(request_message["metadata"]["properties"][key] for key in self.included_properties)}',
+                                            f'{self.response_hash_field} = {response_hash_field} {properties}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,
                                        body=body)
