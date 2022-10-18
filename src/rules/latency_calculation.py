@@ -248,7 +248,7 @@ class Rule(rule.Rule):
 
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
                                             f'{self.request_hash_field} = {request_hash_field} and '
-                                            f'{self.response_hash_field} = {response_hash_field} {properties}',
+                                            f'{self.response_hash_field} = {response_hash_field} | {properties}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,
                                        body=body)

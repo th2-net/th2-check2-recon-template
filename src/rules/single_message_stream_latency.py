@@ -132,7 +132,7 @@ class Rule(rule.Rule):
                                for key in self.included_properties
                                if key in proto_message['metadata']['properties'])
 
-        return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_field} = {hash_field} '
+        return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_field} = {hash_field} | '
                                             f'{properties}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,

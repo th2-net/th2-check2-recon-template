@@ -13,4 +13,4 @@
 # limitations under the License.
 
 
-th2-check2-recon==3.3.0.dev2992461016
+th2-check2-recon==3.3.0
