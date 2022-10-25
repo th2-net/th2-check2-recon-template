@@ -15,11 +15,12 @@
 import logging
 import string
 
-from th2_check2_recon import rule
-from th2_check2_recon.common import TableComponent, EventUtils
-from th2_check2_recon.reconcommon import MessageGroupType, ReconMessage
-from th2_grpc_common.common_pb2 import Event
+from th2_common_utils import event_utils
 
+from th2_check2_recon import rule
+from th2_check2_recon.common import TableComponent
+from th2_check2_recon.reconcommon import ReconMessage, MessageGroupDescription, ReconMessageUtils
+from th2_grpc_common.common_pb2 import Event
 
 logger = logging.getLogger(__name__)
 
@@ -38,31 +39,33 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {'NOS_arfq01fix04': MessageGroupType.single,
-                'ER_arfq01fix04_0': MessageGroupType.single,
-                'ER_arfq01fix04_F': MessageGroupType.single,
-                'ER_arfq01dc04_0': MessageGroupType.single,
-                'ER_arfq01dc04_F': MessageGroupType.single}
+        return {
+            'NOS_arfq01fix04': MessageGroupDescription(single=True),
+            'ER_arfq01fix04_0': MessageGroupDescription(single=True),
+            'ER_arfq01fix04_F': MessageGroupDescription(single=True),
+            'ER_arfq01dc04_0': MessageGroupDescription(single=True),
+            'ER_arfq01dc04_F': MessageGroupDescription(single=True)
+        }
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        message_type: str = message.proto_message.metadata.message_type
-        session_alias = message.proto_message.metadata.id.connection_id.session_alias
+        message_type: str = ReconMessageUtils.get_message_type(message)
+        session_alias = ReconMessageUtils.get_session_alias(message)
         if message_type not in ['ExecutionReport', 'NewOrderSingle'] or \
                 session_alias not in ['arfq01fix04', 'arfq01dc04']:
             return
 
-        message.group_id = message_type.translate({ord(c): '' for c in string.ascii_lowercase})
-        message.group_id += '_' + session_alias
+        message.group_name = message_type.translate({ord(c): '' for c in string.ascii_lowercase})
+        message.group_name += '_' + session_alias
         message.group_info['session_alias'] = session_alias
 
         if message_type == 'ExecutionReport':
-            exec_type = message.proto_message.fields['ExecType'].simple_value
-            message.group_id += '_' + exec_type
+            exec_type = ReconMessageUtils.get_value(message, 'ExecType')
+            message.group_name += '_' + exec_type
             message.group_info['ExecType'] = exec_type
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
-        message.hash = hash(message.proto_message.fields['ClOrdID'].simple_value)
+        cl_ord_id = ReconMessageUtils.get_value(message, 'ClOrdID')
+        message.hash = hash(cl_ord_id)
         message.hash_info['ClOrdID'] = cl_ord_id
 
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
@@ -71,17 +74,17 @@ class Rule(rule.Rule):
         table_component = TableComponent(['Session alias', 'MessageType', 'ExecType', 'ClOrdID', 'Group ID'])
         for msg in messages:
             msg_type = msg.proto_message.metadata.message_type
-            exec_type = msg.proto_message.fields['ExecType'].simple_value
-            cl_ord_id = msg.proto_message.fields['ClOrdID'].simple_value
-            session_alias = msg.proto_message.metadata.id.connection_id.session_alias
-            table_component.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_id)
+            exec_type = ReconMessageUtils.get_value(msg, 'ExecType')
+            cl_ord_id = ReconMessageUtils.get_value(msg, 'ClOrdID')
+            session_alias = ReconMessageUtils.get_session_alias(msg)
+            table_component.add_row(session_alias, msg_type, exec_type, cl_ord_id, msg.group_name)
 
         info_for_name = dict()
         for message in messages:
             info_for_name.update(message.hash_info)
 
-        body = EventUtils.create_event_body(table_component)
-        attach_ids = [msg.proto_message.metadata.id for msg in messages]
-        return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}' from 3 group",
-                                       attached_message_ids=attach_ids,
-                                       body=body)
+        body = event_utils.create_event_body(table_component)
+        attach_ids = [ReconMessageUtils.get_message_id(msg) for msg in messages]
+        return event_utils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}' from 3 group",
+                                        attached_message_ids=attach_ids,
+                                        body=body)

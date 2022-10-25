@@ -14,24 +14,30 @@
 
 import logging
 import threading
+from typing import Optional
+
+from th2_common_utils import event_utils
 
 from th2_check2_recon import rule
-from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils, MessageComponent
-from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
+from th2_check2_recon.common import TableComponent, MessageComponent
+from th2_check2_recon.reconcommon import ReconMessage, ReconMessageUtils, MessageGroupDescription
 from th2_grpc_common.common_pb2 import Event, EventStatus, Message
 
 logger = logging.getLogger(__name__)
 
-def latency_check(message_response: Message, message_request: Message):
-    type1 = message_response.metadata.message_type
-    type2 = message_request.metadata.message_type
-    latency = (MessageUtils.get_timestamp_ns(message_response) - MessageUtils.get_timestamp_ns(message_request)) / 1000
+
+def latency_check(message_response: ReconMessage, message_request: ReconMessage):
+    type1 = ReconMessageUtils.get_message_type(message_response)
+    type2 = ReconMessageUtils.get_message_type(message_request)
+    latency = (ReconMessageUtils.get_timestamp_ns(message_response.proto_message)
+               - ReconMessageUtils.get_timestamp_ns(message_request.proto_message)) / 1000
     return type1, type2, latency
 
 
 class Group:
     REQUEST = 'Request'
     RESPONSE = 'Response'
+
 
 class Rule(rule.Rule):
 
@@ -47,8 +53,10 @@ class Rule(rule.Rule):
         ]
 
     def description_of_groups(self) -> dict:
-        return {Group.REQUEST: MessageGroupType.single,
-                Group.RESPONSE: MessageGroupType.multi}
+        return {
+            Group.REQUEST: MessageGroupDescription(single=True),
+            Group.RESPONSE: MessageGroupDescription(multi=True)
+        }
 
     def configure(self, configuration: dict):
         if isinstance(configuration, dict):
@@ -56,44 +64,43 @@ class Rule(rule.Rule):
         else:
             self.LATENCY_LIMIT = 1000000
 
-    def group(self, message: ReconMessage, attributes: tuple,  *args, **kwargs):
-        message_type: str = message.proto_message.metadata.message_type
+    def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
+        message_type: str = ReconMessageUtils.get_message_type(message)
 
         if message_type in ['NewOrderSingle', 'OrderCancelRequest', 'OrderCancelReplaceRequest']:
-            message.group_id = Group.REQUEST
+            message.group_name = Group.REQUEST
         elif message_type in ['ExecutionReport', 'OrderCancelReject']:
-            message.group_id = Group.RESPONSE
+            message.group_name = Group.RESPONSE
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
+        cl_ord_id = ReconMessageUtils.get_value(message, 'ClOrdID')
         message.hash = hash(cl_ord_id)
         message.hash_info['ClOrdID'] = cl_ord_id
 
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         message_types = []
-        cl_order_id = messages[0].proto_message.fields['ClOrdID'].simple_value
+        cl_order_id = ReconMessageUtils.get_value(messages[0], 'ClOrdID')
         latency_type = 'Unknown'
-        recv_msg: Message = None
-        send_msg: Message = None
+        recv_msg: Optional[ReconMessage] = None
+        send_msg: Optional[ReconMessage] = None
         recv_msg_type: str = ''
         send_msg_type: str = ''
         explanation = None
 
         msg: ReconMessage
         for msg in messages:
-            message = msg.proto_message
-            message_type = message.metadata.message_type
+            message_type = ReconMessageUtils.get_message_type(msg)
             message_types.append(message_type)
-            if msg.group_id == Group.RESPONSE:
-                recv_msg = msg.proto_message
+            if msg.group_name == Group.RESPONSE:
+                recv_msg = msg
                 recv_msg_type = message_type
             else:
-                send_msg = msg.proto_message
+                send_msg = msg
                 send_msg_type = message_type
 
         if recv_msg_type == 'ExecutionReport':
-            exec_type = recv_msg.fields['ExecType'].simple_value
-            ord_status = recv_msg.fields['OrdStatus'].simple_value
+            exec_type = ReconMessageUtils.get_value(recv_msg, 'ExecType')
+            ord_status = ReconMessageUtils.get_value(recv_msg, 'OrdStatus')
 
             logger.info(f"RULE '{self.get_name()}': "
                         f"CHECK: messageER: [ClOrdID:{cl_order_id}, "
@@ -106,7 +113,7 @@ class Rule(rule.Rule):
                 elif exec_type == '0' and ord_status == '0':
                     latency_type = 'New'
                 elif exec_type == 'F' and ord_status in ['1', '2'] and \
-                        recv_msg.fields['LastLiquidityInd'].simple_value == '2':
+                        ReconMessageUtils.get_value(recv_msg, 'LastLiquidityInd') == '2':
                     latency_type = 'Trade'
                 elif exec_type == '8' and ord_status == '8':
                     latency_type = 'NewReject'
@@ -116,7 +123,7 @@ class Rule(rule.Rule):
                     latency_type = 'PendingCancel'
                 elif (exec_type == '4' and ord_status == '4') or (exec_type == 'C' and ord_status == 'C'):
                     latency_type = 'Cancel'
-                
+
             elif send_msg_type == 'OrderCancelReplaceRequest':
                 if exec_type == 'E' and ord_status == 'E':
                     latency_type = 'PendingReplace'
@@ -139,10 +146,10 @@ class Rule(rule.Rule):
 
         else:
             logger.error(f"RULE '{self.get_name()}': "
-                        f"CHECK: Unknown message received. "
-                        f"Msg types: {message_types}\n"
-                        f"Recv msg: {recv_msg}\n"
-                        f"Send msg: {send_msg}")
+                         f"CHECK: Unknown message received. "
+                         f"Msg types: {message_types}\n"
+                         f"Recv msg: {recv_msg}\n"
+                         f"Send msg: {send_msg}")
 
         type1, type2, latency = latency_check(recv_msg, send_msg)
 
@@ -161,12 +168,12 @@ class Rule(rule.Rule):
             f"and {message_types[1]}")
 
         if explanation is None:
-            body = EventUtils.create_event_body(table)
+            body = event_utils.create_event_body(table)
         else:
-            body = EventUtils.create_event_body([table, explanation])
-        attach_ids = [msg.proto_message.metadata.id for msg in messages]
+            body = event_utils.create_event_body([table, explanation])
+        attach_ids = [ReconMessageUtils.get_message_id(msg) for msg in messages]
         status = EventStatus.SUCCESS if latency < self.LATENCY_LIMIT else EventStatus.FAILED
-        return EventUtils.create_event(name=f"Match by ClOrdID: '{cl_order_id}'",
-                                       status=status,
-                                       attached_message_ids=attach_ids,
-                                       body=body)
+        return event_utils.create_event(name=f"Match by ClOrdID: '{cl_order_id}'",
+                                        status=status,
+                                        attached_message_ids=attach_ids,
+                                        body=body)

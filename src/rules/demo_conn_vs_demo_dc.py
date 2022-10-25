@@ -13,12 +13,13 @@
 # limitations under the License.
 
 import logging
+from typing import List
+
+from th2_common_utils import event_utils
 
 from th2_check2_recon import rule
-from th2_check2_recon.common import EventUtils
-from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
+from th2_check2_recon.reconcommon import ReconMessage, MessageGroupDescription, ReconMessageUtils
 from th2_grpc_common.common_pb2 import Direction, Event
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,41 +32,43 @@ class Rule(rule.Rule):
     def get_description(self) -> str:
         return "ExecutionReports received by the traders from FIX conn and from Drop Copy conn are the same"
 
-    def get_attributes(self) -> [list]:
+    def get_attributes(self) -> List[List[str]]:
         return [
             ['parsed', 'subscribe']
         ]
 
     def description_of_groups(self) -> dict:
-        return {'ER_FIX': MessageGroupType.single,
-                'ER_DC': MessageGroupType.single}
+        return {
+            'ER_FIX': MessageGroupDescription(single=True),
+            'ER_DC': MessageGroupDescription(single=True)
+        }
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        message_type: str = message.proto_message.metadata.message_type
-        session_alias = message.proto_message.metadata.id.connection_id.session_alias
-        direction = message.proto_message.metadata.id.direction
+        message_type: str = ReconMessageUtils.get_message_type(message)
+        session_alias = ReconMessageUtils.get_session_alias(message)
         if session_alias not in ['demo-conn1', 'demo-conn2', 'demo-dc1', 'demo-dc2'] or \
-                message_type not in ['ExecutionReport']:
+                message_type != 'ExecutionReport':
             return
 
+        direction = message.proto_message['metadata']['direction']
         if message_type == 'ExecutionReport' and direction != Direction.FIRST:
             return
 
         if session_alias in ['demo-conn1', 'demo-conn2']:
-            message.group_id = 'ER_FIX'
+            message.group_name = 'ER_FIX'
         elif session_alias in ['demo-dc1', 'demo-dc2']:
-            message.group_id = 'ER_DC'
+            message.group_name = 'ER_DC'
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        exec_type = message.proto_message.fields['ExecType'].simple_value
-        cl_ord_id = message.proto_message.fields['ClOrdID'].simple_value
-        exec_id = message.proto_message.fields['ExecID'].simple_value
-        val = ''
-        for field_name in ['ClOrdID', 'ExecType', 'ExecID']:
-            if message.proto_message.fields[field_name].simple_value == '':
+        cl_ord_id = ReconMessageUtils.get_value(message, 'ClOrdID')
+        exec_type = ReconMessageUtils.get_value(message, 'ExecType')
+        exec_id = ReconMessageUtils.get_value(message, 'ExecID')
+        hash_string = ''
+        for value in [cl_ord_id, exec_type, exec_id]:
+            if value == '':
                 return
-            val += message.proto_message.fields[field_name].simple_value
-        message.hash = hash(val)
+            hash_string += value
+        message.hash = hash(hash_string)
         message.hash_info['ClOrdID'] = cl_ord_id
         message.hash_info['ExecType'] = exec_type
         message.hash_info['ExecID'] = exec_id
@@ -76,13 +79,13 @@ class Rule(rule.Rule):
         ignore_fields = ['CheckSum', 'BodyLength', 'SendingTime', 'TargetCompID', 'MsgSeqNum']
         verification_component = self.message_comparator.compare_messages(messages, ignore_fields)
 
-        info_for_name = dict()
+        info_for_name = {}
         for message in messages:
             info_for_name.update(message.hash_info)
 
-        body = EventUtils.create_event_body(verification_component)
-        attach_ids = [msg.proto_message.metadata.id for msg in messages]
-        return EventUtils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}'",
-                                       status=verification_component.status,
-                                       attached_message_ids=attach_ids,
-                                       body=body)
+        body = event_utils.create_event_body(verification_component)
+        attach_ids = [ReconMessageUtils.get_message_id(msg) for msg in messages]
+        return event_utils.create_event(name=f"Match by '{ReconMessage.get_info(info_for_name)}'",
+                                        status=verification_component.status,
+                                        attached_message_ids=attach_ids,
+                                        body=body)
