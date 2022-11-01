@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+from typing import List
 
 from th2_common_utils import event_utils
 
@@ -32,10 +33,8 @@ class Rule(rule.Rule):
         return "NewOrderSingle message written to the logs and original " \
                "NewOrderSingle message sent through the conn are the same"
 
-    def get_attributes(self) -> [list]:
-        return [
-            ['parsed', 'subscribe']
-        ]
+    def get_attributes(self) -> List[str]:
+        return ['parsed', 'subscribe']
 
     def description_of_groups(self) -> dict:
         return {

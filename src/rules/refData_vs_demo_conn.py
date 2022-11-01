@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+from typing import List
 
 from th2_common_utils import event_utils
 
@@ -31,10 +32,8 @@ class Rule(rule.Rule):
     def get_description(self) -> str:
         return "Check instrument status"
 
-    def get_attributes(self) -> [list]:
-        return [
-            ['parsed', 'subscribe']
-        ]
+    def get_attributes(self) -> List[str]:
+        return ['parsed', 'subscribe']
 
     def description_of_groups(self) -> dict:
         return {

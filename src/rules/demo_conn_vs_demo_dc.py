@@ -32,10 +32,8 @@ class Rule(rule.Rule):
     def get_description(self) -> str:
         return "ExecutionReports received by the traders from FIX conn and from Drop Copy conn are the same"
 
-    def get_attributes(self) -> List[List[str]]:
-        return [
-            ['parsed', 'subscribe']
-        ]
+    def get_attributes(self) -> List[str]:
+        return ['parsed', 'subscribe']
 
     def description_of_groups(self) -> dict:
         return {

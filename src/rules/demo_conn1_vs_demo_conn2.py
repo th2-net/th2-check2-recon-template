@@ -32,10 +32,8 @@ class Rule(rule.Rule):
     def get_description(self) -> str:
         return "Trader DEMO-CONN1 and trader DEMO-CONN2 both receive ExecutionReport with the same TrdMatchID"
 
-    def get_attributes(self) -> List[List[str]]:
-        return [
-            ['parsed', 'subscribe']
-        ]
+    def get_attributes(self) -> List[str]:
+        return ['parsed', 'subscribe']
 
     def description_of_groups(self) -> dict:
         return {
