@@ -33,6 +33,12 @@ class LatencyCalculationMode(Enum):
     def _missing_(cls, value: object) -> Any:
         return LatencyCalculationMode.SENDING_TRANSACT
 
+    def __str__(self) -> str:
+        if self == LatencyCalculationMode.CUSTOM:
+            return '{} minus {}'
+        else:
+            return 'SendingTime minus TransactTime'
+
 
 def calculate_latency(time1: str, time2: str):
 
@@ -106,17 +112,17 @@ class Rule(rule.Rule):
         table = TableComponent(['Name', 'Value'])
         table.add_row('MessageType', message_type)
         table.add_row(f'{self.hash_field}', hash_field)
+        table.add_row('Mode', str(self.mode).format(self.time2, self.time1))
 
         if self.mode == LatencyCalculationMode.CUSTOM:
             time1 = proto_message['fields'][self.time1]
             time2 = proto_message['fields'][self.time2]
-            table.add_row(self.time1, time1)
-            table.add_row(self.time2, time2)
         else:
             time1 = proto_message['fields']['TransactTime']
             time2 = proto_message['fields']['header']['SendingTime']
-            table.add_row('TransactTime', time1)
-            table.add_row('SendingTime', time2)
+
+        table.add_row('Time 1', time1)
+        table.add_row('Time 2', time2)
 
         latency = calculate_latency(time1, time2)
         table.add_row('Latency in us', latency)
