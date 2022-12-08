@@ -161,6 +161,8 @@ class Rule(rule.Rule):
         table = TableComponent(['Name', 'Value'])
         table.add_row('Request Message Type', request_message_type)
         table.add_row('Response Message Type', response_message_type)
+        table.add_row('Request Timestamp', str(request_message['metadata']['timestamp']))
+        table.add_row('Response Timestamp', str(response_message['metadata']['timestamp']))
         table.add_row(f'Request {self.request_hash_field}', request_hash_field)
         table.add_row(f'Response {self.response_hash_field}', response_hash_field)
 
