@@ -102,12 +102,10 @@ class Rule(rule.Rule):
         proto_message: Dict[str, Any] = message.proto_message
         message_type = proto_message['metadata']['message_type']
         hash_field = proto_message['fields'][self.hash_field]
-        timestamp = str(proto_message['metadata']['timestamp'])
 
         table = TableComponent(['Name', 'Value'])
         table.add_row('MessageType', message_type)
         table.add_row(f'{self.hash_field}', hash_field)
-        table.add_row('Timestamp', timestamp)
 
         if self.mode == LatencyCalculationMode.CUSTOM:
             time1 = proto_message['fields'][self.time1]

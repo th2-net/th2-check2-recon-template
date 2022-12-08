@@ -40,61 +40,39 @@ class LatencyCalculationMode(Enum):
     def _missing_(cls, value: object) -> Any:
         return LatencyCalculationMode.TIMESTAMP
 
+    def __str__(self) -> str:
+        if self == LatencyCalculationMode.SENDING_TIME:
+            return 'Response SendingTime minus request SendingTime'
+        if self == LatencyCalculationMode.RESPONSE_TIME:
+            return 'Response Timestamp minus request SendingTime'
+        if self == LatencyCalculationMode.CUSTOM:
+            return 'Response {} minus request {}'
+        else:
+            return 'Response Timestamp minus request Timestamp'
 
-def latency_by_timestamp(response_message: Dict[str, Any], request_message: Dict[str, Any]):
-    return (MessageUtils.get_timestamp_ns(response_message) - MessageUtils.get_timestamp_ns(request_message)) / 1000
 
-
-def latency_by_sending_time(response_message: Dict[str, Any], request_message: Dict[str, Any]):
-
-    request_sending_time = request_message['fields']['header']['SendingTime']
-    response_sending_time = response_message['fields']['header']['SendingTime']
-
+def parse_time(time: str):
     try:
-        request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S.%f')
+        return datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%f')
     except ValueError:
         try:
-            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S')
+            return datetime.strptime(time, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
-            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M')
-
-    try:
-        response_sending_time = datetime.strptime(response_sending_time, '%Y-%m-%dT%H:%M:%S.%f')
-    except ValueError:
-        try:
-            response_sending_time = datetime.strptime(response_sending_time, '%Y-%m-%dT%H:%M:%S')
-        except ValueError:
-            response_sending_time = datetime.strptime(response_sending_time, '%Y-%m-%dT%H:%M')
-
-    latency = (response_sending_time - request_sending_time) / timedelta(microseconds=1)
-    return latency
+            return datetime.strptime(time, '%Y-%m-%dT%H:%M')
 
 
-def latency_response_time(response_message: Dict[str, Any], request_message: Dict[str, Any]):
-
-    response_timestamp = MessageUtils.get_timestamp_ns(response_message) / 1000
-
-    request_sending_time = request_message['fields']['header']['SendingTime']
-    try:
-        request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S.%f')
-    except ValueError:
-        try:
-            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M:%S')
-        except ValueError:
-            request_sending_time = datetime.strptime(request_sending_time, '%Y-%m-%dT%H:%M')
-
-    request_sending_time = request_sending_time.timestamp() * 1_000_000
-
-    return response_timestamp - request_sending_time
+def subtract_time(time1: datetime, time2: datetime):
+    return (time2 - time1) / timedelta(microseconds=1)
 
 
 class Rule(rule.Rule):
 
     def get_name(self) -> str:
-        return 'Latency by Timestamp Rule'
+        return 'Latency Calculation Rule'
 
     def get_description(self) -> str:
-        return 'Rule for calculating latency between two message streams by Timestamp in their metadata'
+        return 'Rule for calculating latency between two message streams ' \
+               'by different time fields according to chosen mode'
 
     def get_attributes(self) -> [list]:
         return [
@@ -133,30 +111,6 @@ class Rule(rule.Rule):
                 (len(self.response_message_session_aliases) == 0 or
                  session_alias in self.response_message_session_aliases):
             return Group.RESPONSE
-
-    def latency_custom(self, response_message: Dict[str, Any], request_message: Dict[str, Any]):
-
-        request_time = request_message['fields'][self.request_time]
-        response_time = response_message['fields'][self.response_time]
-
-        try:
-            request_time = datetime.strptime(request_time, '%Y-%m-%dT%H:%M:%S.%f')
-        except ValueError:
-            try:
-                request_time = datetime.strptime(request_time, '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
-                request_time = datetime.strptime(request_time, '%Y-%m-%dT%H:%M')
-
-        try:
-            response_time = datetime.strptime(response_time, '%Y-%m-%dT%H:%M:%S.%f')
-        except ValueError:
-            try:
-                response_time = datetime.strptime(response_time, '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
-                response_time = datetime.strptime(response_time, '%Y-%m-%dT%H:%M')
-
-        latency = (response_time - request_time) / timedelta(microseconds=1)
-        return latency
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         group = self.determine_message(message)
@@ -198,7 +152,6 @@ class Rule(rule.Rule):
                 response_message = proto_message
                 response_message_type = message_type
 
-        request_timestamp = str(request_message['metadata']['timestamp'])
         request_hash_field = request_message['fields'][self.request_hash_field]
         response_hash_field = response_message['fields'][self.response_hash_field]
 
@@ -206,9 +159,10 @@ class Rule(rule.Rule):
         response_ord_status = response_message['fields'].get('OrdStatus')
 
         table = TableComponent(['Name', 'Value'])
-        table.add_row('Message Type', request_message_type)
-        table.add_row('Timestamp', request_timestamp)
-        table.add_row(f'{self.request_hash_field}', request_hash_field)
+        table.add_row('Request Message Type', request_message_type)
+        table.add_row('Response Message Type', response_message_type)
+        table.add_row(f'Request {self.request_hash_field}', request_hash_field)
+        table.add_row(f'Response {self.response_hash_field}', response_hash_field)
 
         if response_exec_type is not None:
             table.add_row('ExecType', response_exec_type)
@@ -217,16 +171,29 @@ class Rule(rule.Rule):
             table.add_row('OrdStatus', response_ord_status)
 
         if self.mode == LatencyCalculationMode.SENDING_TIME:
-            latency = latency_by_sending_time(response_message, request_message)
-        elif self.mode == LatencyCalculationMode.RESPONSE_TIME:
-            latency = latency_response_time(response_message, request_message)
-        elif self.mode == LatencyCalculationMode.CUSTOM:
-            latency = self.latency_custom(response_message, request_message)
-            table.add_row(f'{self.request_time}', request_message['fields'][self.request_time])
-            table.add_row(f'{self.response_time}', response_message['fields'][self.response_time])
-        else:
-            latency = latency_by_timestamp(response_message, request_message)
+            request_time = request_message['fields']['header']['SendingTime']
+            response_time = response_message['fields']['header']['SendingTime']
+            latency = subtract_time(parse_time(request_time), parse_time(response_time))
 
+        elif self.mode == LatencyCalculationMode.RESPONSE_TIME:
+            request_time = request_message['fields']['header']['SendingTime']
+            response_time = response_message['metadata']['timestamp']
+
+            latency = subtract_time(parse_time(request_time), response_time)
+
+        elif self.mode == LatencyCalculationMode.CUSTOM:
+            request_time = request_message['fields'][self.request_time]
+            response_time = response_message['fields'][self.response_time]
+            latency = subtract_time(parse_time(request_time), parse_time(response_time))
+
+        else:
+            request_time = request_message['metadata']['timestamp']
+            response_time = response_message['metadata']['timestamp']
+            latency = subtract_time(request_time, response_time)
+
+        table.add_row('Mode', str(self.mode).format(self.response_time, self.request_time))
+        table.add_row('Request Time', request_time)
+        table.add_row('Response Time', response_time)
         table.add_row('Latency in us', latency)
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
@@ -237,7 +204,8 @@ class Rule(rule.Rule):
 
         body = EventUtils.create_event_body(table)
 
-        attach_ids = [MessageID(connection_id=ConnectionID(session_alias=msg.proto_message['metadata']['session_alias']),
+        attach_ids = [MessageID(connection_id=ConnectionID(session_alias=
+                                                           msg.proto_message['metadata']['session_alias']),
                                 direction=msg.proto_message['metadata']['direction'],
                                 sequence=msg.proto_message['metadata']['sequence'])
                       for msg in messages]
