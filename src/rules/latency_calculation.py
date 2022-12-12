@@ -161,10 +161,10 @@ class Rule(rule.Rule):
         table = TableComponent(['Name', 'Value'])
         table.add_row('Request Message Type', request_message_type)
         table.add_row('Response Message Type', response_message_type)
-        table.add_row('Request Timestamp', str(request_message['metadata']['timestamp']))
-        table.add_row('Response Timestamp', str(response_message['metadata']['timestamp']))
-        table.add_row(f'Request {self.request_hash_field}', request_hash_field)
-        table.add_row(f'Response {self.response_hash_field}', response_hash_field)
+        table.add_row('Timestamp', str(request_message['metadata']['timestamp']))
+        table.add_row('Request match field', self.request_hash_field)
+        table.add_row('Response match field', self.response_hash_field)
+        table.add_row('Match value', request_hash_field)
 
         if response_exec_type is not None:
             table.add_row('ExecType', response_exec_type)
@@ -184,8 +184,17 @@ class Rule(rule.Rule):
             latency = subtract_time(parse_time(request_time), response_time)
 
         elif self.mode == LatencyCalculationMode.CUSTOM:
-            request_time = request_message['fields'][self.request_time]
-            response_time = response_message['fields'][self.response_time]
+
+            if self.request_time == 'SendingTime':
+                request_time = request_message['fields']['header']['SendingTime']
+            else:
+                request_time = request_message['fields'][self.request_time]
+
+            if self.response_time == 'SendingTime':
+                response_time = response_message['fields']['header']['SendingTime']
+            else:
+                response_time = response_message['fields'][self.response_time]
+
             latency = subtract_time(parse_time(request_time), parse_time(response_time))
 
         else:

@@ -112,12 +112,20 @@ class Rule(rule.Rule):
         table = TableComponent(['Name', 'Value'])
         table.add_row('MessageType', message_type)
         table.add_row('Timestamp', str(proto_message['metadata']['timestamp']))
-        table.add_row(f'{self.hash_field}', hash_field)
         table.add_row('Mode', str(self.mode).format(self.time2, self.time1))
 
         if self.mode == LatencyCalculationMode.CUSTOM:
-            time1 = proto_message['fields'][self.time1]
-            time2 = proto_message['fields'][self.time2]
+
+            if self.time1 == 'SendingTime':
+                time1 = proto_message['fields']['header']['SendingTime']
+            else:
+                time1 = proto_message['fields'][self.time1]
+
+            if self.time2 == 'SendingTime':
+                time2 = proto_message['fields']['header']['SendingTime']
+            else:
+                time2 = proto_message['fields'][self.time2]
+
         else:
             time1 = proto_message['fields']['TransactTime']
             time2 = proto_message['fields']['header']['SendingTime']
