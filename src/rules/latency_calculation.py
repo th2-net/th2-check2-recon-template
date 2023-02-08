@@ -15,6 +15,7 @@
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
+from fnmatch import fnmatch
 from typing import Optional, Any, Dict
 
 from th2_check2_recon import rule
@@ -105,11 +106,11 @@ class Rule(rule.Rule):
 
         if message_type in self.request_message_types and \
                 (len(self.request_message_session_aliases) == 0 or
-                 session_alias in self.request_message_session_aliases):
+                 any(fnmatch(session_alias, wildcard) for wildcard in self.request_message_session_aliases)):
             return Group.REQUEST
         elif message_type in self.response_message_types and \
                 (len(self.response_message_session_aliases) == 0 or
-                 session_alias in self.response_message_session_aliases):
+                 any(fnmatch(session_alias, wildcard) for wildcard in self.response_message_session_aliases)):
             return Group.RESPONSE
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):

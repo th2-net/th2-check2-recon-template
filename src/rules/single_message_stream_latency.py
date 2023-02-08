@@ -15,6 +15,7 @@
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
+from fnmatch import fnmatch
 from typing import Dict, Any
 
 from th2_check2_recon import rule
@@ -95,7 +96,7 @@ class Rule(rule.Rule):
         session_alias: str = message.proto_message['metadata']['session_alias']
 
         if message_type in self.message_types and \
-                (len(self.session_aliases) == 0 or session_alias in self.session_aliases):
+                (len(self.session_aliases) == 0 or any(fnmatch(session_alias, wildcard) for wildcard in self.session_aliases):
             message.group_id = 'Message'
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
