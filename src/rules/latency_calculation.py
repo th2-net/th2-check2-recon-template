@@ -52,6 +52,13 @@ class LatencyCalculationMode(Enum):
             return 'Response Timestamp minus request Timestamp'
 
 
+class HashInfo:
+
+    def __init__(self, info: dict):
+        self.hash_field = info.get('HashField', 'ClOrdID')
+        self.is_property = info.get('IsProperty', False)
+
+
 def parse_time(time: str):
     try:
         return datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%f')
@@ -87,12 +94,12 @@ class Rule(rule.Rule):
     def configure(self, configuration: dict):
         self.request_message_types = configuration.get('RequestMessageTypes', ['NewOrderSingle'])
         self.request_message_session_aliases = configuration.get('RequestMessageSessionAliases', [])
-        self.request_hash_field = configuration.get('RequestHashField', 'ClOrdID')
+        self.request_hash_info = HashInfo(configuration.get('RequestHashInfo', {}))
         self.request_time = configuration.get('RequestTime', 'TransactTime')
 
         self.response_message_types = configuration.get('ResponseMessageTypes', ['ExecutionReport'])
         self.response_message_session_aliases = configuration.get('ResponseMessageSessionAliases', [])
-        self.response_hash_field = configuration.get('ResponseHashField', 'ClOrdID')
+        self.response_hash_info = HashInfo(configuration.get('ResponseHashInfo', {}))
         self.response_time = configuration.get('ResponseTime', 'TransactTime')
 
         self.mode = LatencyCalculationMode(configuration.get('Mode', 'Timestamp'))
@@ -125,13 +132,19 @@ class Rule(rule.Rule):
         group = self.determine_message(message)
 
         if group == Group.REQUEST:
-            hash_field = message.proto_message['fields'][self.request_hash_field]
+            if self.request_hash_info.is_property:
+                hash_field = message.proto_message['metadata']['properties'][self.request_hash_info.hash_field]
+            else:    
+                hash_field = message.proto_message['fields'][self.request_hash_info.hash_field]
             message.hash = hash(hash_field)
-            message.hash_info[self.request_hash_field] = hash_field
+            message.hash_info[self.request_hash_info.hash_field] = hash_field
         elif group == Group.RESPONSE:
-            hash_field = message.proto_message['fields'][self.response_hash_field]
+            if self.response_hash_info.is_property:
+                hash_field = message.proto_message['metadata']['properties'][self.response_hash_info.hash_field]
+            else:    
+                hash_field = message.proto_message['fields'][self.response_hash_info.hash_field]
             message.hash = hash(hash_field)
-            message.hash_info[self.response_hash_field] = hash_field
+            message.hash_info[self.response_hash_info.hash_field] = hash_field
 
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
 
@@ -153,8 +166,15 @@ class Rule(rule.Rule):
                 response_message = proto_message
                 response_message_type = message_type
 
-        request_hash_field = request_message['fields'][self.request_hash_field]
-        response_hash_field = response_message['fields'][self.response_hash_field]
+        if self.request_hash_info.is_property:
+            request_hash_field = message.proto_message['metadata']['properties'][self.request_hash_info.hash_field]
+        else:    
+            request_hash_field = message.proto_message['fields'][self.request_hash_info.hash_field]
+        
+        if self.response_hash_info.is_property:
+            response_hash_field = message.proto_message['metadata']['properties'][self.response_hash_info.hash_field]
+        else:    
+            response_hash_field = message.proto_message['fields'][self.response_hash_info.hash_field]
 
         response_exec_type = response_message['fields'].get('ExecType')
         response_ord_status = response_message['fields'].get('OrdStatus')
@@ -163,8 +183,8 @@ class Rule(rule.Rule):
         table.add_row('Request Message Type', request_message_type)
         table.add_row('Response Message Type', response_message_type)
         table.add_row('Timestamp', str(request_message['metadata']['timestamp']))
-        table.add_row('Request match field', self.request_hash_field)
-        table.add_row('Response match field', self.response_hash_field)
+        table.add_row('Request match field', self.request_hash_info.hash_field)
+        table.add_row('Response match field', self.response_hash_info.hash_field)
         table.add_row('Match value', request_hash_field)
 
         if response_exec_type is not None:
@@ -210,8 +230,8 @@ class Rule(rule.Rule):
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
                      self.get_name(),
-                     request_message_type, self.request_hash_field, request_hash_field,
-                     response_message_type, self.response_hash_field, response_hash_field,
+                     request_message_type, self.request_hash_info.hash_field, request_hash_field,
+                     response_message_type, self.response_hash_info.hash_field, response_hash_field,
                      latency)
 
         body = EventUtils.create_event_body(table)
@@ -227,8 +247,8 @@ class Rule(rule.Rule):
                                if key in request_message['metadata']['properties'])
 
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
-                                            f'{self.request_hash_field} = {request_hash_field} and '
-                                            f'{self.response_hash_field} = {response_hash_field} | {properties}',
+                                            f'{self.request_hash_info.hash_field} = {request_hash_field} and '
+                                            f'{self.response_hash_info.hash_field} = {response_hash_field} | {properties}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,
                                        body=body)

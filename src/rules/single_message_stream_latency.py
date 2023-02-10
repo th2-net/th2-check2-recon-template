@@ -41,6 +41,13 @@ class LatencyCalculationMode(Enum):
             return 'SendingTime minus TransactTime'
 
 
+class HashInfo:
+
+    def __init__(self, info: dict):
+        self.hash_field = info.get('HashField', 'ClOrdID')
+        self.is_property = info.get('IsProperty', False)
+
+
 def calculate_latency(time1: str, time2: str):
 
     try:
@@ -83,7 +90,7 @@ class Rule(rule.Rule):
     def configure(self, configuration: dict):
         self.message_types = configuration.get('MessageTypes', ['NewOrderSingle'])
         self.session_aliases = configuration.get('SessionAliases', [])
-        self.hash_field = configuration.get('HashField', 'ClOrdID')
+        self.hash_info = HashInfo(configuration.get('HashInfo', {}))
         self.time1 = configuration.get('Time1', 'TransactTime')
         self.time2 = configuration.get('Time2', 'TransactTime')
         self.mode = LatencyCalculationMode(configuration.get('Mode', 'SendingTransact'))
@@ -100,15 +107,21 @@ class Rule(rule.Rule):
             message.group_id = 'Message'
 
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
-        hash_field = message.proto_message['fields'][self.hash_field]
+        if self.hash_info.is_property:
+            hash_field = message.proto_message['metadata']['properties'][self.hash_info.hash_field]
+        else:    
+            hash_field = message.proto_message['fields'][self.hash_info.hash_field]
         message.hash = hash(hash_field)
-        message.hash_info[self.hash_field] = hash_field
+        message.hash_info[self.hash_info.hash_field] = hash_field
 
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         message = messages[0]
         proto_message: Dict[str, Any] = message.proto_message
         message_type = proto_message['metadata']['message_type']
-        hash_field = proto_message['fields'][self.hash_field]
+        if self.hash_info.is_property:
+            hash_field = message.proto_message['metadata']['properties'][self.hash_info.hash_field]
+        else:    
+            hash_field = message.proto_message['fields'][self.hash_info.hash_field]
 
         table = TableComponent(['Name', 'Value'])
         table.add_row('MessageType', message_type)
@@ -146,7 +159,7 @@ class Rule(rule.Rule):
                                for key in self.included_properties
                                if key in proto_message['metadata']['properties'])
 
-        return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_field} = {hash_field} | '
+        return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_info.hash_field} = {hash_field} | '
                                             f'{properties}',
                                        status=EventStatus.SUCCESS,
                                        attached_message_ids=attach_ids,
