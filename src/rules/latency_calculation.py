@@ -224,8 +224,8 @@ class Rule(rule.Rule):
             latency = subtract_time(request_time, response_time)
 
         table.add_row('Mode', str(self.mode).format(self.response_time, self.request_time))
-        table.add_row('Request Time', request_time)
-        table.add_row('Response Time', response_time)
+        table.add_row('Request Time', str(request_time))
+        table.add_row('Response Time', str(response_time))
         table.add_row('Latency in us', str(latency))
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
