@@ -148,7 +148,7 @@ class Rule(rule.Rule):
         table.add_row('Time 2', time2)
 
         latency = calculate_latency(time1, time2)
-        table.add_row('Latency in us', latency)
+        table.add_row('Latency in us', str(latency))
         body = EventUtils.create_event_body(table)
 
         attach_ids = [MessageID(connection_id=ConnectionID(session_alias=proto_message['metadata']['session_alias']),
