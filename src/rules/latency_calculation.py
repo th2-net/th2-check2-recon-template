@@ -139,6 +139,9 @@ class Rule(rule.Rule):
             message.hash_info[hash_info.hash_field] = hash_field
         except KeyError:
             if hash_info.hash_field == 'id':
+                logger.debug(
+                    "Rule: %s. Skip the message without 'id' field. Message: %s",
+                    self.get_name(), message.proto_message)
                 # Skip such messages
                 # We expect that all interest messages should contain ID field.
                 pass
