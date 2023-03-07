@@ -127,24 +127,31 @@ class Rule(rule.Rule):
             message.group_id = Group.REQUEST
         elif group == Group.RESPONSE:
             message.group_id = Group.RESPONSE
-            
+
+    def _set_hash(self, hash_info: HashInfo, message):
+        try:
+            if hash_info.is_property:
+                hash_field = message.proto_message['metadata']['properties'][
+                    hash_info.hash_field]
+            else:
+                hash_field = message.proto_message['fields'][hash_info.hash_field]
+            message.hash = hash(hash_field)
+            message.hash_info[hash_info.hash_field] = hash_field
+        except KeyError:
+            if hash_info.hash_field == 'id':
+                # Skip such messages
+                # We expect that all interest messages should contain ID field.
+                pass
+            else:
+                raise
+
     def hash(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         group = self.determine_message(message)
 
         if group == Group.REQUEST:
-            if self.request_hash_info.is_property:
-                hash_field = message.proto_message['metadata']['properties'][self.request_hash_info.hash_field]
-            else:    
-                hash_field = message.proto_message['fields'][self.request_hash_info.hash_field]
-            message.hash = hash(hash_field)
-            message.hash_info[self.request_hash_info.hash_field] = hash_field
+            self._set_hash(self.request_hash_info, message)
         elif group == Group.RESPONSE:
-            if self.response_hash_info.is_property:
-                hash_field = message.proto_message['metadata']['properties'][self.response_hash_info.hash_field]
-            else:    
-                hash_field = message.proto_message['fields'][self.response_hash_info.hash_field]
-            message.hash = hash(hash_field)
-            message.hash_info[self.response_hash_info.hash_field] = hash_field
+            self._set_hash(self.response_hash_info, message)
 
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
 
@@ -167,14 +174,14 @@ class Rule(rule.Rule):
                 response_message_type = message_type
 
         if self.request_hash_info.is_property:
-            request_hash_field = message.proto_message['metadata']['properties'][self.request_hash_info.hash_field]
+            request_hash_field = request_message['metadata']['properties'][self.request_hash_info.hash_field]
         else:    
-            request_hash_field = message.proto_message['fields'][self.request_hash_info.hash_field]
+            request_hash_field = request_message['fields'][self.request_hash_info.hash_field]
         
         if self.response_hash_info.is_property:
-            response_hash_field = message.proto_message['metadata']['properties'][self.response_hash_info.hash_field]
+            response_hash_field = response_message['metadata']['properties'][self.response_hash_info.hash_field]
         else:    
-            response_hash_field = message.proto_message['fields'][self.response_hash_info.hash_field]
+            response_hash_field = response_message['fields'][self.response_hash_info.hash_field]
 
         response_exec_type = response_message['fields'].get('ExecType')
         response_ord_status = response_message['fields'].get('OrdStatus')
