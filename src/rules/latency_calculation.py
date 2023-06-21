@@ -1,4 +1,4 @@
-# Copyright 2020-2022 Exactpro (Exactpro Systems Limited)
+# Copyright 2020-2023 Exactpro (Exactpro Systems Limited)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,6 +57,7 @@ class HashInfo:
     def __init__(self, info: dict):
         self.hash_field = info.get('HashField', 'ClOrdID')
         self.is_property = info.get('IsProperty', False)
+        self.is_multiple = info.get('IsMultiple', False)
 
 
 def parse_time(time: str):
@@ -131,12 +132,20 @@ class Rule(rule.Rule):
     def _set_hash(self, hash_info: HashInfo, message):
         try:
             if hash_info.is_property:
-                hash_field = message.proto_message['metadata']['properties'][
-                    hash_info.hash_field]
+                hash_field = message.proto_message['metadata']['properties'][hash_info.hash_field]
+                message.hash_info[hash_info.hash_field] = hash_field
+            elif hash_info.is_multiple:
+                hash_field = ''
+                for field in hash_info.hash_field:
+                    field_value = message.proto_message['fields'].get(field)
+                    if field_value is not None:
+                        hash_field += field_value
+                        message.hash_info[field] = field_value
             else:
                 hash_field = message.proto_message['fields'][hash_info.hash_field]
+                message.hash_info[hash_info.hash_field] = hash_field
+
             message.hash = hash(hash_field)
-            message.hash_info[hash_info.hash_field] = hash_field
         except KeyError:
             if hash_info.hash_field == 'id':
                 # Skip such messages
