@@ -186,11 +186,17 @@ class Rule(rule.Rule):
 
         if self.request_hash_info.is_property:
             request_hash_field = request_message['metadata']['properties'][self.request_hash_info.hash_field]
+        elif self.request_hash_info.is_multiple:
+            request_hash_field = ', '.join(request_message['fields'][field] 
+                                           for field in self.request_hash_info.hash_field)
         else:    
             request_hash_field = request_message['fields'][self.request_hash_info.hash_field]
         
         if self.response_hash_info.is_property:
             response_hash_field = response_message['metadata']['properties'][self.response_hash_info.hash_field]
+        elif self.response_hash_info.is_multiple:
+            response_hash_field = ', '.join(response_message['fields'][field] 
+                                            for field in self.response_hash_info.hash_field)
         else:    
             response_hash_field = response_message['fields'][self.response_hash_info.hash_field]
 
@@ -201,8 +207,8 @@ class Rule(rule.Rule):
         table.add_row('Request Message Type', request_message_type)
         table.add_row('Response Message Type', response_message_type)
         table.add_row('Timestamp', str(request_message['metadata']['timestamp']))
-        table.add_row('Request match field', self.request_hash_info.hash_field)
-        table.add_row('Response match field', self.response_hash_info.hash_field)
+        table.add_row('Request match field', str(self.request_hash_info.hash_field))
+        table.add_row('Response match field', str(self.response_hash_info.hash_field))
         table.add_row('Match value', request_hash_field)
 
         if response_exec_type is not None:
@@ -248,8 +254,8 @@ class Rule(rule.Rule):
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
                      self.get_name(),
-                     request_message_type, self.request_hash_info.hash_field, request_hash_field,
-                     response_message_type, self.response_hash_info.hash_field, response_hash_field,
+                     request_message_type, str(self.request_hash_info.hash_field), request_hash_field,
+                     response_message_type, str(self.response_hash_info.hash_field), response_hash_field,
                      latency)
 
         body = EventUtils.create_event_body(table)

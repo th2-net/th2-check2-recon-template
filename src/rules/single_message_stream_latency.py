@@ -129,9 +129,12 @@ class Rule(rule.Rule):
         proto_message: Dict[str, Any] = message.proto_message
         message_type = proto_message['metadata']['message_type']
         if self.hash_info.is_property:
-            hash_field = message.proto_message['metadata']['properties'][self.hash_info.hash_field]
+            hash_field = proto_message['metadata']['properties'][self.hash_info.hash_field]
+        elif self.hash_info.is_multiple:
+            hash_field = ', '.join(proto_message['fields'][field] 
+                                   for field in self.hash_info.hash_field)
         else:    
-            hash_field = message.proto_message['fields'][self.hash_info.hash_field]
+            hash_field = proto_message['fields'][self.hash_info.hash_field]
 
         table = TableComponent(['Name', 'Value'])
         table.add_row('MessageType', message_type)
