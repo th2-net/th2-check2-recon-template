@@ -111,9 +111,9 @@ class Rule(rule.Rule):
         if self.hash_info.is_property:
             hash_field = message.proto_message['metadata']['properties'][self.hash_info.hash_field]
             message.hash_info[self.hash_info.hash_field] = hash_field
-        elif hash_info.is_multiple:
+        elif self.hash_info.is_multiple:
             hash_field = ''
-            for field in hash_info.hash_field:
+            for field in self.hash_info.hash_field:
                 field_value = message.proto_message['fields'].get(field)
                 if field_value is not None:
                     hash_field += field_value
