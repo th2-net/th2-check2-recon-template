@@ -14,6 +14,7 @@
 
 import logging
 import threading
+import json
 
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils, MessageComponent
@@ -166,6 +167,18 @@ class Rule(rule.Rule):
             body = EventUtils.create_event_body([table, explanation])
         attach_ids = [msg.proto_message.metadata.id for msg in messages]
         status = EventStatus.SUCCESS if latency < self.LATENCY_LIMIT else EventStatus.FAILED
+
+        kafka_event = json.dumps({
+            'ClOrdId': cl_order_id,
+            'Message Response': type1,
+            'Message Request': type2,
+            'Latency type': latency_type,
+            'Latency': latency,
+            'Response Message Id': str(recv_msg.metadata.id),
+            'Request Message Id': str(send_msg.metadata.id)
+        }).encode('utf-8')
+        self.kafka.send(kafka_event)
+
         return EventUtils.create_event(name=f"Match by ClOrdID: '{cl_order_id}'",
                                        status=status,
                                        attached_message_ids=attach_ids,
