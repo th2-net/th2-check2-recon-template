@@ -56,6 +56,9 @@ class Rule(rule.Rule):
             self.LATENCY_LIMIT = configuration.get('LATENCY_LIMIT', 1000000)
         else:
             self.LATENCY_LIMIT = 1000000
+    
+    def kafka_client(self, kafka):
+        self.kafka = kafka
 
     def group(self, message: ReconMessage, attributes: tuple,  *args, **kwargs):
         message_type: str = message.proto_message.metadata.message_type
@@ -176,9 +179,10 @@ class Rule(rule.Rule):
             'Latency': latency,
             'Response Message Id': str(recv_msg.metadata.id),
             'Request Message Id': str(send_msg.metadata.id)
-        }).encode('utf-8')
-        if super().kafka:
-            super().kafka.send(kafka_event)
+        })
+        if self.kafka:
+            self.kafka.send(kafka_event)
+            self.kafka.flush()
 
         return EventUtils.create_event(name=f"Match by ClOrdID: '{cl_order_id}'",
                                        status=status,
