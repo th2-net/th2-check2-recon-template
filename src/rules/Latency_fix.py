@@ -177,7 +177,8 @@ class Rule(rule.Rule):
             'Response Message Id': str(recv_msg.metadata.id),
             'Request Message Id': str(send_msg.metadata.id)
         }).encode('utf-8')
-        self.kafka.send(kafka_event)
+        if super().kafka:
+            super().kafka.send(kafka_event)
 
         return EventUtils.create_event(name=f"Match by ClOrdID: '{cl_order_id}'",
                                        status=status,
