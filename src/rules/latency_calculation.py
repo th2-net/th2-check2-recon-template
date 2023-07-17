@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from fnmatch import fnmatch
 from typing import Optional, Any, Dict
+import json
 
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils
@@ -106,7 +107,11 @@ class Rule(rule.Rule):
         self.mode = LatencyCalculationMode(configuration.get('Mode', 'Timestamp'))
 
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
+        self.latency_type = configuration.get('LatencyType', 'ResponseLatency')
         self.included_properties = configuration.get('Properties', [])
+
+    def kafka_client(self, kafka):
+        self.kafka = kafka
 
     def determine_message(self, message: ReconMessage):
         message_type: str = message.proto_message['metadata']['message_type']
@@ -203,28 +208,57 @@ class Rule(rule.Rule):
         response_exec_type = response_message['fields'].get('ExecType')
         response_ord_status = response_message['fields'].get('OrdStatus')
 
+        kafka_event = {}
+        kafka_event["LatencyType"] = self.latency_type
+        kafka_event["Version"] = "1.0"
+
         table = TableComponent(['Name', 'Value'])
         table.add_row('Request Message Type', request_message_type)
+        kafka_event['RequestMessageType'] = request_message_type
+
         table.add_row('Response Message Type', response_message_type)
+        kafka_event['ResponseMessageType'] = response_message_type
+
         table.add_row('Timestamp', str(request_message['metadata']['timestamp']))
+
         table.add_row('Request match field', str(self.request_hash_info.hash_field))
         table.add_row('Response match field', str(self.response_hash_info.hash_field))
         table.add_row('Match value', request_hash_field)
 
+        if self.request_hash_info.is_multiple:
+            kafka_event['RequestMatchFields'] = self.request_hash_info.hash_field
+            kafka_event['ResponseMatchFields'] = self.response_hash_info.hash_field
+            kafka_event['MatchValues'] = request_hash_field.split(", ")
+        else:
+            kafka_event['RequestMatchFields'] = [self.request_hash_info.hash_field]
+            kafka_event['ResponseMatchFields'] = [self.response_hash_info.hash_field]
+            kafka_event['MatchValues'] = [request_hash_field]
+
         if response_exec_type is not None:
             table.add_row('ExecType', response_exec_type)
+            kafka_event['ExecType'] = response_exec_type
+        else:
+            kafka_event['ExecType'] = None
 
         if response_ord_status is not None:
             table.add_row('OrdStatus', response_ord_status)
+            kafka_event['OrdStatus'] = response_ord_status
+        else:
+            kafka_event['OrdStatus'] = None
 
         if self.mode == LatencyCalculationMode.SENDING_TIME:
             request_time = request_message['fields']['header']['SendingTime']
             response_time = response_message['fields']['header']['SendingTime']
+            kafka_event['LatencyStartTimeField'] = "SendingTime"
+            kafka_event['LatencyEndTimeField'] = "SendingTime"
             latency = subtract_time(parse_time(request_time), parse_time(response_time))
 
         elif self.mode == LatencyCalculationMode.RESPONSE_TIME:
             request_time = request_message['fields']['header']['SendingTime']
             response_time = response_message['metadata']['timestamp']
+
+            kafka_event['LatencyStartTimeField'] = "SendingTime"
+            kafka_event['LatencyEndTimeField'] = "Timestamp"
 
             latency = subtract_time(parse_time(request_time), response_time)
 
@@ -232,13 +266,17 @@ class Rule(rule.Rule):
 
             if self.request_time == 'SendingTime':
                 request_time = request_message['fields']['header']['SendingTime']
+                kafka_event['LatencyStartTimeField'] = "SendingTime"
             else:
+                kafka_event['LatencyStartTimeField'] = self.request_time
                 request_time = request_message['fields'][self.request_time]
 
             if self.response_time == 'SendingTime':
                 response_time = response_message['fields']['header']['SendingTime']
+                kafka_event['LatencyEndTimeField'] = "SendingTime"
             else:
                 response_time = response_message['fields'][self.response_time]
+                kafka_event['LatencyEndTimeField'] = self.response_time
 
             latency = subtract_time(parse_time(request_time), parse_time(response_time))
 
@@ -248,9 +286,15 @@ class Rule(rule.Rule):
             latency = subtract_time(request_time, response_time)
 
         table.add_row('Mode', str(self.mode).format(self.response_time, self.request_time))
+
+        kafka_event['LatencyStartTime'] = str(request_time)
+        kafka_event['LatencyEndTime'] = str(response_time)
         table.add_row('Request Time', str(request_time))
         table.add_row('Response Time', str(response_time))
+
         table.add_row('Latency in us', str(latency))
+        kafka_event['Latency', str(latency)]
+        
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
                      self.get_name(),
@@ -269,6 +313,9 @@ class Rule(rule.Rule):
         properties = ', '.join(request_message['metadata']['properties'][key]
                                for key in self.included_properties
                                if key in request_message['metadata']['properties'])
+        
+        if self.kafka:
+            self.kafka.send(json.dumps(kafka_event))
 
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
                                             f'{self.request_hash_info.hash_field} = {request_hash_field} and '

@@ -97,7 +97,11 @@ class Rule(rule.Rule):
         self.mode = LatencyCalculationMode(configuration.get('Mode', 'SendingTransact'))
 
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
+        self.latency_type = configuration.get('LatencyType', 'ResponseLatency')
         self.included_properties = configuration.get('Properties', [])
+
+    def kafka_client(self, kafka):
+        self.kafka = kafka
 
     def group(self, message: ReconMessage, attributes: tuple, *args, **kwargs):
         message_type: str = message.proto_message['metadata']['message_type']
@@ -137,7 +141,27 @@ class Rule(rule.Rule):
             hash_field = proto_message['fields'][self.hash_info.hash_field]
 
         table = TableComponent(['Name', 'Value'])
+        kafka_event = {}
+        kafka_event["LatencyType", self.latency_type]
+        kafka_event["Version", "1.0"]
+
         table.add_row('MessageType', message_type)
+
+        kafka_event["RequestMessageType"] = message_type
+        kafka_event["ResponseMessageType"] = None
+
+        if self.hash_info.is_multiple:
+            kafka_event["RequestMatchFields"] = self.hash_info.hash_field
+            kafka_event["MatchValues"] = hash_field.split(", ")
+        else:
+            kafka_event["RequestMatchFields"] = [self.hash_info.hash_field]
+            kafka_event["MatchValues"] = [hash_field]
+        kafka_event["ResponseMatchFields"] = None
+
+        kafka_event["ExecType"] = None
+        kafka_event["OrdStatus"] = None
+
+
         table.add_row('Timestamp', str(proto_message['metadata']['timestamp']))
         table.add_row('Mode', str(self.mode).format(self.time2, self.time1))
 
@@ -145,23 +169,32 @@ class Rule(rule.Rule):
 
             if self.time1 == 'SendingTime':
                 time1 = proto_message['fields']['header']['SendingTime']
+                kafka_event['LatencyStartTimeField'] = "SendingTime"
             else:
                 time1 = proto_message['fields'][self.time1]
+                kafka_event['LatencyStartTimeField'] = self.time1
 
             if self.time2 == 'SendingTime':
                 time2 = proto_message['fields']['header']['SendingTime']
+                kafka_event['LatencyEndTimeField'] = "SendingTime"
             else:
                 time2 = proto_message['fields'][self.time2]
+                kafka_event['LatencyEndTimeField'] = self.time2
 
         else:
             time1 = proto_message['fields']['TransactTime']
+            kafka_event['LatencyStartTimeField'] = "TransactTime"
             time2 = proto_message['fields']['header']['SendingTime']
+            kafka_event['LatencyEndTimeField'] = "SendingTime"
 
+        kafka_event['LatencyStartTime'] = time1
+        kafka_event['LatencyEndTime'] = time2
         table.add_row('Time 1', time1)
         table.add_row('Time 2', time2)
 
         latency = calculate_latency(time1, time2)
         table.add_row('Latency in us', str(latency))
+        kafka_event['Latency'] = str(latency)
         body = EventUtils.create_event_body(table)
 
         attach_ids = [MessageID(connection_id=ConnectionID(session_alias=proto_message['metadata']['session_alias']),
@@ -171,6 +204,10 @@ class Rule(rule.Rule):
         properties = ', '.join(proto_message['metadata']['properties'][key]
                                for key in self.included_properties
                                if key in proto_message['metadata']['properties'])
+        
+
+        if self.kafka:
+            self.kafka.send(kafka_event)
 
         return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_info.hash_field} = {hash_field} | '
                                             f'{properties}',

@@ -13,4 +13,4 @@
 # limitations under the License.
 
 
-th2-check2-recon==3.3.2  # The version with fix from https://github.com/th2-net/th2-check2-recon/pull/74
+th2-check2-recon==3.3.2.dev5483899909  # The version with fix from https://github.com/th2-net/th2-check2-recon/pull/74
