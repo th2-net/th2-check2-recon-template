@@ -109,6 +109,9 @@ class Rule(rule.Rule):
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
         self.latency_type = configuration.get('LatencyType', 'ResponseLatency')
         self.included_properties = configuration.get('Properties', [])
+        self.kafka_key = configuration.get('kafka_key', 'default_key')
+        self.kafka_topic = configuration.get('kafka_topic', 'default_topic')
+        self.publish_kafka_events = configuration.get('publish_kafka_events', False)
 
     def kafka_client(self, kafka):
         self.kafka = kafka
@@ -314,8 +317,9 @@ class Rule(rule.Rule):
                                for key in self.included_properties
                                if key in request_message['metadata']['properties'])
         
-        if self.kafka:
-            self.kafka.send(json.dumps(kafka_event))
+        if self.kafka and self.publish_kafka_events:
+            self.kafka.send_with_topic(self.kafka_topic, self.kafka_key, json.dumps(kafka_event))
+            self.kafka.flush()
 
         return EventUtils.create_event(name=f'{self.latency_info} between messages with '
                                             f'{self.request_hash_info.hash_field} = {request_hash_field} and '

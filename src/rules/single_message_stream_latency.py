@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from fnmatch import fnmatch
 from typing import Dict, Any
+import json
 
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, TableComponent
@@ -99,6 +100,9 @@ class Rule(rule.Rule):
         self.latency_info = configuration.get('LatencyInfo', 'Latency')
         self.latency_type = configuration.get('LatencyType', 'ResponseLatency')
         self.included_properties = configuration.get('Properties', [])
+        self.publish_kafka_events = configuration.get('publish_kafka_events', False)
+        self.kafka_key = configuration.get('kafka_key', 'default_key')
+        self.kafka_topic = configuration.get('kafka_topic', 'default_topic')
 
     def kafka_client(self, kafka):
         self.kafka = kafka
@@ -206,8 +210,9 @@ class Rule(rule.Rule):
                                if key in proto_message['metadata']['properties'])
         
 
-        if self.kafka:
-            self.kafka.send(kafka_event)
+        if self.kafka and self.publish_kafka_events:
+            self.kafka.send_with_topic(self.kafka_topic, self.kafka_key, json.dumps(kafka_event))
+            self.kafka.flush()
 
         return EventUtils.create_event(name=f'{self.latency_info} for message with {self.hash_info.hash_field} = {hash_field} | '
                                             f'{properties}',
