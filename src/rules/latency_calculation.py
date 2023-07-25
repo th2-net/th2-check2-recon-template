@@ -19,6 +19,7 @@ from fnmatch import fnmatch
 from typing import Optional, Any, Dict
 import json
 
+from google.protobuf.timestamp_pb2 import Timestamp
 from th2_check2_recon import rule
 from th2_check2_recon.common import EventUtils, TableComponent, MessageUtils
 from th2_check2_recon.reconcommon import ReconMessage, MessageGroupType
@@ -74,6 +75,11 @@ def parse_time(time: str):
 def subtract_time(time1: datetime, time2: datetime):
     return (time2 - time1) / timedelta(microseconds=1)
 
+def subtract_time_timestamps(ts1: Timestamp, ts2: Timestamp):
+    time1 = ts1.seconds + 1_000_000_000 * ts1.nanos
+    time2 = ts2.seconds + 1_000_000_000 * ts2.nanos
+
+    return time2 - time1
 
 class Rule(rule.Rule):
 
@@ -188,9 +194,11 @@ class Rule(rule.Rule):
             if group == Group.REQUEST:
                 request_message = proto_message
                 request_message_type = message_type
+                request_proto_timestamp = message.proto_timestamp
             elif group == Group.RESPONSE:
                 response_message = proto_message
                 response_message_type = message_type
+                response_proto_timestamp = message.proto_timestamp
 
         if self.request_hash_info.is_property:
             request_hash_field = request_message['metadata']['properties'][self.request_hash_info.hash_field]
@@ -286,17 +294,33 @@ class Rule(rule.Rule):
         else:
             request_time = request_message['metadata']['timestamp']
             response_time = response_message['metadata']['timestamp']
-            latency = subtract_time(request_time, response_time)
+            request_time_nano = request_proto_timestamp.ToJsonString()
+            response_time_nano = response_proto_timestamp.ToJsonString()
+
+            latency_nano = subtract_time_timestamps(request_proto_timestamp, response_proto_timestamp)
+            latency = latency_nano / 1000
 
         table.add_row('Mode', str(self.mode).format(self.response_time, self.request_time))
 
-        kafka_event['LatencyStartTime'] = str(request_time)
-        kafka_event['LatencyEndTime'] = str(response_time)
+        # FIXME: Convert all latencies to nanoseconds precisions and publish them in th2 events.
+
+        if request_time_nano:
+            kafka_event['LatencyStartTime'] = request_time_nano
+        else:
+            kafka_event['LatencyStartTime'] = str(request_time)
+
+        if response_time_nano:
+            kafka_event['LatencyEndTime'] = str(response_time)
+        else:
+            kafka_event['LatencyEndTime'] = response_time_nano
         table.add_row('Request Time', str(request_time))
         table.add_row('Response Time', str(response_time))
 
         table.add_row('Latency in us', str(latency))
-        kafka_event['Latency', str(latency)]
+        if latency_nano:
+            kafka_event['Latency', str(latency_nano)]
+        else:
+            kafka_event['Latency', str(latency)]
         
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
