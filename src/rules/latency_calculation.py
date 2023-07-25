@@ -76,10 +76,7 @@ def subtract_time(time1: datetime, time2: datetime):
     return (time2 - time1) / timedelta(microseconds=1)
 
 def subtract_time_timestamps(ts1: Timestamp, ts2: Timestamp):
-    time1 = ts1.seconds + 1_000_000_000 * ts1.nanos
-    time2 = ts2.seconds + 1_000_000_000 * ts2.nanos
-
-    return time2 - time1
+    return ts2.ToNanoseconds() - ts1.ToNanoseconds()
 
 class Rule(rule.Rule):
 
