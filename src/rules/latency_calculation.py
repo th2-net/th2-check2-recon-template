@@ -291,6 +291,8 @@ class Rule(rule.Rule):
         else:
             request_time = request_message['metadata']['timestamp']
             response_time = response_message['metadata']['timestamp']
+            kafka_event['LatencyStartTimeField'] = "Timestamp"
+            kafka_event['LatencyEndTimeField'] = "Timestamp"
             request_time_nano = request_proto_timestamp.ToJsonString()
             response_time_nano = response_proto_timestamp.ToJsonString()
 
