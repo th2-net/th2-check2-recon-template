@@ -127,7 +127,6 @@ class Rule(rule.Rule):
     def check(self, messages: [ReconMessage], *args, **kwargs) -> Event:
         message = messages[0]
         proto_message: Dict[str, Any] = message.proto_message
-        logger.info(proto_message)
         message_type = proto_message['metadata']['message_type']
         if self.hash_info.is_property:
             hash_field = proto_message['metadata']['properties'][self.hash_info.hash_field]
