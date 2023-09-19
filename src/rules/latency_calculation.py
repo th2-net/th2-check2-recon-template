@@ -319,9 +319,9 @@ class Rule(rule.Rule):
 
         table.add_row('Latency in us', str(latency))
         if latency_nano:
-            kafka_event['Latency', str(latency_nano)]
+            kafka_event['Latency'] = str(latency_nano)
         else:
-            kafka_event['Latency', str(latency)]
+            kafka_event['Latency'] = str(latency)
         
 
         logger.debug('Rule: %s. Latency between %s with %s = %s and %s with %s = %s is equal to %s',
