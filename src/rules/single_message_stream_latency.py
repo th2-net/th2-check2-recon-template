@@ -146,8 +146,8 @@ class Rule(rule.Rule):
 
         table = TableComponent(['Name', 'Value'])
         kafka_event = {}
-        kafka_event["LatencyType", self.latency_type]
-        kafka_event["Version", "1.0"]
+        kafka_event["LatencyType"] = self.latency_type
+        kafka_event["Version"] = "1.0"
 
         table.add_row('MessageType', message_type)
 

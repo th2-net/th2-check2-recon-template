@@ -253,7 +253,9 @@ class Rule(rule.Rule):
             kafka_event['OrdStatus'] = response_ord_status
         else:
             kafka_event['OrdStatus'] = None
-
+        request_time_nano = None
+        response_time_nano = None
+        latency_nano = None
         if self.mode == LatencyCalculationMode.SENDING_TIME:
             request_time = request_message['fields']['header']['SendingTime']
             response_time = response_message['fields']['header']['SendingTime']
