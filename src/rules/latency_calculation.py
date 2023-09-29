@@ -319,7 +319,7 @@ class Rule(rule.Rule):
 
         table.add_row('Latency in us', str(latency))
         if latency_nano:
-            kafka_event['Latency'] = str(latency_nano)
+            kafka_event['Latency'] = str(int(latency_nano) // 1000)
         else:
             kafka_event['Latency'] = str(latency)
         
