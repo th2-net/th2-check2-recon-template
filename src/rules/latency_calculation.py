@@ -35,6 +35,8 @@ class LatencyCalculationMode(Enum):
     TIMESTAMP = 'Timestamp'
     SENDING_TIME = 'SendingTime'
     RESPONSE_TIME = 'ResponseTime'
+    # Special mode when we need to take both times from the response.
+    CUSTOM_RESP_RESP = 'Custom_RESP_RESP'
     CUSTOM = 'Custom'
 
     @classmethod
@@ -48,6 +50,8 @@ class LatencyCalculationMode(Enum):
             return 'Response Timestamp minus request SendingTime'
         if self == LatencyCalculationMode.CUSTOM:
             return 'Response {} minus request {}'
+        if self == LatencyCalculationMode.CUSTOM_RESP_RESP:
+            return 'Response {} minus Response {}'
         else:
             return 'Response Timestamp minus request Timestamp'
 
@@ -96,12 +100,12 @@ class Rule(rule.Rule):
         self.request_message_types = configuration.get('RequestMessageTypes', ['NewOrderSingle'])
         self.request_message_session_aliases = configuration.get('RequestMessageSessionAliases', [])
         self.request_hash_info = HashInfo(configuration.get('RequestHashInfo', {}))
-        self.request_time = configuration.get('RequestTime', 'TransactTime')
+        self.request_time_field = configuration.get('RequestTime', 'TransactTime')
 
         self.response_message_types = configuration.get('ResponseMessageTypes', ['ExecutionReport'])
         self.response_message_session_aliases = configuration.get('ResponseMessageSessionAliases', [])
         self.response_hash_info = HashInfo(configuration.get('ResponseHashInfo', {}))
-        self.response_time = configuration.get('ResponseTime', 'TransactTime')
+        self.response_time_field = configuration.get('ResponseTime', 'TransactTime')
 
         self.mode = LatencyCalculationMode(configuration.get('Mode', 'Timestamp'))
 
@@ -230,15 +234,28 @@ class Rule(rule.Rule):
 
         elif self.mode == LatencyCalculationMode.CUSTOM:
 
-            if self.request_time == 'SendingTime':
+            if self.request_time_field == 'SendingTime':
                 request_time = request_message['fields']['header']['SendingTime']
             else:
-                request_time = request_message['fields'][self.request_time]
+                request_time = request_message['fields'][self.request_time_field]
 
-            if self.response_time == 'SendingTime':
+            if self.response_time_field == 'SendingTime':
                 response_time = response_message['fields']['header']['SendingTime']
             else:
-                response_time = response_message['fields'][self.response_time]
+                response_time = response_message['fields'][self.response_time_field]
+
+            latency = subtract_time(parse_time(request_time), parse_time(response_time))
+
+        elif self.mode == LatencyCalculationMode.CUSTOM_RESP_RESP:
+            if self.request_time_field == 'SendingTime':
+                request_time = response_message['fields']['header']['SendingTime']
+            else:
+                request_time = response_message['fields'][self.request_time_field]
+
+            if self.response_time_field == 'SendingTime':
+                response_time = response_message['fields']['header']['SendingTime']
+            else:
+                response_time = response_message['fields'][self.response_time_field]
 
             latency = subtract_time(parse_time(request_time), parse_time(response_time))
 
@@ -247,7 +264,8 @@ class Rule(rule.Rule):
             response_time = response_message['metadata']['timestamp']
             latency = subtract_time(request_time, response_time)
 
-        table.add_row('Mode', str(self.mode).format(self.response_time, self.request_time))
+        table.add_row('Mode', str(self.mode).format(self.response_time_field,
+                                                    self.request_time_field))
         table.add_row('Request Time', str(request_time))
         table.add_row('Response Time', str(response_time))
         table.add_row('Latency in us', str(latency))
