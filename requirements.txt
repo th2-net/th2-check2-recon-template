@@ -14,4 +14,4 @@
 
 
 # th2-check2-recon==3.3.2  # The version with fix from https://github.com/th2-net/th2-check2-recon/pull/74
-th2-check2-recon==3.4.0.dev7459373941
+th2-check2-recon==3.4.0.dev7462684151
